@@ -5,7 +5,7 @@ const http = require('http')
 
 var app = express()
 
-let start = new Data().toString()
+let start = new Date().toString()
 
 const server = http.createServer(app)
 
