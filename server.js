@@ -5,7 +5,7 @@ const http = require('http')
 
 var app = express()
 
-const server = http.createServer(app)
+const server = https.createServer(app)
 
 server.listen(process.env.PORT || 3000, ()=>{
     console.log("Listening on port 3000...")
