@@ -5,7 +5,7 @@ const http = require('http')
 
 var app = express()
 
-const server = https.createServer(app)
+const server = http.createServer(app)
 
 server.listen(process.env.PORT || 3000, ()=>{
     console.log("Listening on port 3000...")
@@ -20,7 +20,7 @@ wsServer.on('request', (req) => {
         try {
             if(message.type === 'utf8') {
                 console.log(message)
-                connection.send(message.utf8Data)
+                connection.send()
             }
         } catch (e) {}
     })
