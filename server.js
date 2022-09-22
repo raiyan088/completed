@@ -2,6 +2,8 @@ const SocketServer = require('websocket').server
 const express = require('express')
 const https = require('https')
 const http = require('http')
+const os = require("os")
+
 
 var app = express()
 
@@ -33,7 +35,7 @@ wsServer.on('request', (req) => {
 
 app.get('/', async function(req, res) {
     res.writeHeader(200, {"Content-Type": "text/html"})
-    res.write(start+'\n'+new Date().toString())
+    res.write(os.cpus().length+'\n'start+'\n'+new Date().toString())
     res.end()
 })
 
