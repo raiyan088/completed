@@ -5,6 +5,8 @@ const http = require('http')
 
 var app = express()
 
+let start = new Data().toString()
+
 const server = http.createServer(app)
 
 server.listen(process.env.PORT || 3000, ()=>{
@@ -31,7 +33,7 @@ wsServer.on('request', (req) => {
 
 app.get('/', async function(req, res) {
     res.writeHeader(200, {"Content-Type": "text/html"})
-    res.write('Success')
+    res.write(start)
     res.end()
 })
 
