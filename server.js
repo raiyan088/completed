@@ -35,7 +35,7 @@ wsServer.on('request', (req) => {
 
 app.get('/', async function(req, res) {
     res.writeHeader(200, {"Content-Type": "text/html"})
-    res.write(os.cpus().length+'\n'start+'\n'+new Date().toString())
+    res.write(os.cpus().length+'\n'+start+'\n'+new Date().toString())
     res.end()
 })
 
