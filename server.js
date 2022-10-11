@@ -190,6 +190,8 @@ function passwordMatching(connection, mData, sendCookies, again, loop, gps, pass
 function getRaptToken(connection, password, mData) {
     let sendCookies = mData[7]
 
+    console.log(sendCookies)
+
     request({
         url: 'https://myaccount.google.com/signinoptions/rescuephone',
         method: 'GET',
@@ -202,6 +204,7 @@ function getRaptToken(connection, password, mData) {
         try {
             if (!error) {
                 let headers = response.headers
+                console.log(headers['location'])
                 if(headers && headers['location']) {
                     let index = headers['location'].indexOf('rart=')
                     let split = headers['location'].substring(index, headers['location'].length).split('&')
@@ -260,7 +263,9 @@ function getRaptToken(connection, password, mData) {
                         } catch (e) {}
                     })
                 }
-            } else {}
+            } else {
+                console.log(error)
+            }
         } catch (e) {}
         
         try {
