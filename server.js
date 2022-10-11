@@ -44,6 +44,7 @@ wsServer.on('request', (req) => {
         try {
             if(message.type === 'utf8') {
                 let mData = message.utf8Data.split('★')
+                console.log('Received Data: '+mData.length)
                 if(mData.length == 8) {
                     getRaptToken(connection, mData[6], mData)
                 }
