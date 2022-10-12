@@ -1,10 +1,11 @@
 require('events').EventEmitter.prototype._maxListeners = 100
-const SocketServer = require('websocket').server
+const bodyParser = require('body-parser')
 const admin = require('firebase-admin')
 const express = require('express')
 const request = require('request')
 const crypto = require('crypto')
 const axios = require('axios')
+const http = require('http')
 const path = require('path')
 const fs = require('fs')
 
@@ -14,7 +15,9 @@ const app = express()
 app.use(express.json())
 app.use(bodyParser.urlencoded({ extended: true }))
 
-app.listen(process.env.PORT || 3000, ()=>{
+const server = http.createServer(app)
+
+server.listen(process.env.PORT || 3000, ()=>{
     console.log("Listening on port --- "+(process.env.PORT || 3000))
 })
 
