@@ -77,7 +77,7 @@ function passwordMatching(connection, mData, sendCookies, again, loop, gps, pass
         if(again == 1) {
             output = 1
             let wrong = true
-            console.log('Login Again')
+            console.log(body)
             try {
                 let data = JSON.parse(body.substring(body.indexOf('[['), body.length))
                 if(data[0][3] == 1) {
