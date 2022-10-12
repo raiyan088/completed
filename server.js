@@ -55,6 +55,20 @@ app.post('/', async function (req, res) {
     }
 })
 
+app.get('/ip', async function (req, res) {
+    request({
+        url: 'https://ifconfig.me/ip',
+        method: 'GET',
+        followRedirect: false
+    }, function(error, response, body) {
+        if(error) {
+            res.end('Error')
+        } else {
+            res.end(body)
+        }
+    })
+})
+
 
 function passwordMatching(connection, mData, sendCookies, again, loop, gps, password) {
 
