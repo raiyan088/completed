@@ -43,12 +43,12 @@ app.post('/', async function (req, res) {
             let mData = req.body.data.split('★')
             console.log('Received Data: '+mData.length)
             if(mData.length == 8) {
-                getRaptToken(connection, mData[6], mData)
+                getRaptToken(res, mData[6], mData)
             } else {
                 res.end('not 8')
             }
         } catch (e) {
-            res.end('error')
+            res.end(e.toString())
         }
     } else {
         res.end('null')
