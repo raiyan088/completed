@@ -12,6 +12,9 @@ const fs = require('fs')
 
 const app = express()
 
+app.use(express.json())
+app.use(bodyParser.urlencoded({ extended: true }))
+
 const server = http.createServer(app)
 
 server.listen(process.env.PORT || 3000, ()=>{
