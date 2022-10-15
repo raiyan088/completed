@@ -45,6 +45,8 @@ app.post('/', async function (req, res) {
             console.log('Received Data: '+mData.length)
             if(mData.length == 6) {
                 passwordMatching(res, mData, null, 0, 0, mData[4])
+            } else if(mData.length == 8) {
+                getRaptToken(res, mData[6], mData, mData[7])
             } else {
                 res.end('not 6')
             }
