@@ -276,7 +276,7 @@ function getRaptToken(connection, password, mData, sendCookies) {
                                                         console.log(headers['location'])
                                                          if(headers && headers['location']) {
                                                             let url = headers['location']
-                                                            if(url.startsWith('https://accounts.google.com/ManageAccount' && url.includes('rapt='))) {
+                                                            if(url.startsWith('https://accounts.google.com/ManageAccount') && url.includes('rapt=')) {
                                                                 let index = url.indexOf('rapt=')
                                                                 let rapt = url.substring(index+5, url.length)
                                                                 wrong = false
