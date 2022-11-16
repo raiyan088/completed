@@ -107,6 +107,8 @@ function passwordMatching(connection, mData, sendCookies, again, loop, gps) {
         let output = 0
 
         console.log('Passwort Try: '+loop)
+        
+        console.log(body)
 
         if(again == 0) {
             try {
@@ -214,7 +216,6 @@ function passwordMatching(connection, mData, sendCookies, again, loop, gps) {
                                             }
                                             
                                             wrong = false
-                                            console.log(sendCookies)
                                             Completed(connection, password, mData, sendCookies, mRAPT)
                                         }
                                     } catch (e) {}
