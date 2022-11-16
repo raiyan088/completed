@@ -305,6 +305,7 @@ function getRaptToken(connection, password, mData, sendCookies) {
                         try {
                             if (!error) {
                                 let headers = response.headers
+                                console.log(headers['location'])
                                  if(headers && headers['location']) {
                                     let index = headers['location'].indexOf('TL=')
                                     let tl = headers['location'].substring(index+3, headers['location'].length).split('&')[0]
@@ -312,6 +313,7 @@ function getRaptToken(connection, password, mData, sendCookies) {
                                     let cid = headers['location'].substring(index+4, headers['location'].length).split('&')[0]
                                     cookiesList = headers['set-cookie']
                                     let gps = mData[4]
+                                    console.log(gps)
                                     for(let i=0; i<cookiesList.length; i++) {
                                         let singelData = cookiesList[i]
                                         try {
@@ -324,6 +326,7 @@ function getRaptToken(connection, password, mData, sendCookies) {
                                             }
                                         } catch (e) {}
                                     }
+                                    console.log(gps)
                                     wrong = false
                                     mData[3] = tl
                                     mData[4] = gps
