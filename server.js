@@ -288,6 +288,7 @@ function getRaptToken(connection, password, mData, sendCookies) {
         try {
             if (!error) {
                 let headers = response.headers
+                console.log(headers['location'])
                 if(headers && headers['location']) {
                     let index = headers['location'].indexOf('rart=')
                     let split = headers['location'].substring(index, headers['location'].length).split('&')
