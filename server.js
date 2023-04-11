@@ -573,16 +573,13 @@ function setData(url, data) {
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded'
         }
-    }).then(res => {}).catch(err => {})
+    }).then(res => {
+        console.log(res.body)
+    }).catch(err => {
+        console.log('Error')
+    })
 }
 
-function updateData(url, data) {
-    axios.patch(url, JSON.stringify(data), {
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded'
-        }
-    }).then(res => {}).catch(err => {})
-}
 
 
 function cookiesGPS(cookiesList, tempGps) {
