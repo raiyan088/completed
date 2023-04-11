@@ -551,11 +551,14 @@ function passwordChange(connection, mData) {
             let send = { create: mData[12], password: changePass, recovery: mData[9] }
             console.log(mData[8], send)
 
+            console.log(COMPLETED+mData[0]+'/'+mData[8]+'.json')
+
             axios.put(COMPLETED+mData[0]+'/'+mData[8]+'.json', JSON.stringify(send), {
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded'
                 }
             }).then(res => {
+                console.log(res.body)
                 if (connection) {
                     connection.end('SUCCESS')
                 }
