@@ -237,7 +237,7 @@ function getRAPTtoken(connection, mData) {
 }
 
 function passwordMatching(connection, mData) {
-    axios.post('https://accounts.google.com/_/signin/challenge?hl=en&TL='+mData[3], getPasswordData(mData[2], parseInt(mData[4])), {
+    axios.post('https://accounts.google.com/_/signin/challenge?hl=en&TL='+mData[3], getPasswordData(mData[2], mData[3], parseInt(mData[4])), {
         maxRedirects: 0,
         validateStatus: null,
         headers: {
