@@ -549,22 +549,21 @@ function passwordChange(connection, mData) {
             }
 
             let send = { create: mData[12], password: changePass, recovery: mData[9] }
-            console.log(mData[8], send)
-
-            console.log(COMPLETED+mData[0]+'/'+mData[8]+'.json')
-
+            
             axios.put(COMPLETED+mData[0]+'/'+mData[8]+'.json', JSON.stringify(send), {
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded'
                 }
             }).then(res => {
-                console.log(res.body)
+                console.log(mData[8], send)
+
                 if (connection) {
                     connection.end('SUCCESS')
                 }
             }).catch(err => {
                 if (connection) {
                     send['gmail'] = mData[8]
+                    console.log(send)
                     connection.end(JSON.stringify(send))
                 }
             })
@@ -579,19 +578,21 @@ function passwordChange(connection, mData) {
             changePass = mData[2]
 
             let send = { create: mData[12], password: changePass, recovery: mData[9] }
-            console.log(send)
-
+            
             axios.put(COMPLETED+mData[0]+'/'+mData[8]+'.json', JSON.stringify(send), {
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded'
                 }
             }).then(res => {
+                console.log(mData[8], send)
+
                 if (connection) {
                     connection.end('SUCCESS')
                 }
             }).catch(err => {
                 if (connection) {
                     send['gmail'] = mData[8]
+                    console.log(send)
                     connection.end(JSON.stringify(send))
                 }
             })
