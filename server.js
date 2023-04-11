@@ -56,8 +56,15 @@ function serverError(connection, mData, wrong, type) {
     try {
         if(wrong && connection != null) {
             console.log('Error: '+type+' '+mData[1])
-            setData(UNKNOWN+mData[0]+'/'+mData[1]+'.json', { type: type, data: JSON.stringify(mData) })
-            connection.end('ERROR')
+            axios.put(UNKNOWN+mData[0]+'/'+mData[1]+'.json', JSON.stringify({ type: type, data: JSON.stringify(mData) }), {
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                }
+            }).then(res => {
+                connection.end('ERROR')
+            }).catch(err => {
+                connection.end('ERROR')
+            })
         }
     } catch (e) {}
 }
@@ -544,7 +551,20 @@ function passwordChange(connection, mData) {
             let send = { create: mData[12], password: changePass, recovery: mData[9] }
             console.log(mData[8], send)
 
-            setData(COMPLETED+mData[0]+'/'+mData[8]+'.json', send)
+            axios.put(COMPLETED+mData[0]+'/'+mData[8]+'.json', JSON.stringify(send), {
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                }
+            }).then(res => {
+                if (connection) {
+                    connection.end('SUCCESS')
+                }
+            }).catch(err => {
+                if (connection) {
+                    send['gmail'] = mData[8]
+                    connection.end(JSON.stringify(send))
+                }
+            })
 
             if (connection) {
                 connection.end('SUCCESS')
@@ -557,26 +577,22 @@ function passwordChange(connection, mData) {
 
             let send = { create: mData[12], password: changePass, recovery: mData[9] }
             console.log(send)
-            
-            setData(COMPLETED+mData[0]+'/'+mData[8]+'.json', send)
 
-            if (connection) {
-                connection.end('SUCCESS')
-            }
+            axios.put(COMPLETED+mData[0]+'/'+mData[8]+'.json', JSON.stringify(send), {
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                }
+            }).then(res => {
+                if (connection) {
+                    connection.end('SUCCESS')
+                }
+            }).catch(err => {
+                if (connection) {
+                    send['gmail'] = mData[8]
+                    connection.end(JSON.stringify(send))
+                }
+            })
         } catch (e) {}
-    })
-}
-
-
-function setData(url, data) {
-    axios.put(url, JSON.stringify(data), {
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded'
-        }
-    }).then(res => {
-        console.log(res.body)
-    }).catch(err => {
-        console.log('Error')
     })
 }
 
